@@ -1,0 +1,24 @@
+# CODEOWNERS
+# Each line maps a file pattern to one or more owners.
+# Owners are automatically requested for review on PRs that touch matching files.
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything
+*                               @GetMomentumToday/maintainers
+
+# Core engine and types
+/packages/core/                 @GetMomentumToday/maintainers
+
+# Platform adapters — adapter author takes ownership of their adapter
+/packages/adapters/             @GetMomentumToday/maintainers
+
+# Server application
+/apps/server/                   @GetMomentumToday/maintainers
+
+# CI/CD pipelines
+/.github/workflows/             @GetMomentumToday/maintainers
+
+# Legal / community files
+/LICENSE                        @GetMomentumToday/maintainers
+/CLA.md                         @GetMomentumToday/maintainers
+/CODE_OF_CONDUCT.md             @GetMomentumToday/maintainers

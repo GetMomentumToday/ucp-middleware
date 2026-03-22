@@ -1,0 +1,40 @@
+# Version control
+.git
+.gitignore
+
+# Dependencies (installed inside image)
+node_modules
+
+# Build artifacts (rebuilt inside image)
+dist
+*.tsbuildinfo
+
+# Environment (never bake secrets into images)
+.env
+.env.*
+!.env.example
+
+# Dev tooling
+.eslintrc.js
+.prettierrc
+docker-compose*.yml
+.github
+
+# IDE
+.idea
+.vscode
+
+# Docs
+README.md
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+CLA.md
+CODEOWNERS
+
+# Logs
+logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
