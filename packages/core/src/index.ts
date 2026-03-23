@@ -4,10 +4,8 @@
  * UCP Engine — types, routing, normalisation, and adapter interfaces.
  */
 
-// Adapter contract
 export type { PlatformAdapter } from './types/adapter.js';
 
-// Commerce domain types
 export type {
   UCPProfile,
   Capability,
@@ -25,14 +23,10 @@ export type {
   Order,
 } from './types/commerce.js';
 
-// Errors
 export { AdapterError, notFound, outOfStock } from './types/errors.js';
 export type { AdapterErrorCode } from './types/errors.js';
 
-// Registry
 export { AdapterRegistry } from './adapter-registry.js';
-
-// ─── Infrastructure ─────────────────────────────────────────────────────────
 
 export { tenants, identityLinks } from './infra/schema.js';
 export { createDb, buildDbConfig } from './infra/db.js';
@@ -43,8 +37,6 @@ export type {
   CreateTenantInput,
   UpdateTenantInput,
 } from './infra/TenantRepository.js';
-
-// ─── Session ────────────────────────────────────────────────────────────────
 
 export { SessionStore } from './session/SessionStore.js';
 export type {

@@ -1,17 +1,6 @@
-/**
- * Redis-backed checkout session store.
- *
- * Sessions are stored as JSON strings with automatic TTL expiry.
- * Key format: `session:{id}`
- */
-
 import crypto from 'node:crypto';
 import type { Redis as RedisType } from 'ioredis';
 import type { Address, Totals } from '../types/commerce.js';
-
-// ──────────────────────────────────────────────
-// Types
-// ──────────────────────────────────────────────
 
 export type SessionStatus =
   | 'incomplete'
@@ -39,16 +28,8 @@ export type UpdateSessionData = Partial<
   Omit<CheckoutSession, 'id' | 'tenant_id' | 'created_at'>
 >;
 
-// ──────────────────────────────────────────────
-// Constants
-// ──────────────────────────────────────────────
-
 const KEY_PREFIX = 'session:';
-const DEFAULT_TTL_SECONDS = 1800; // 30 minutes
-
-// ──────────────────────────────────────────────
-// SessionStore
-// ──────────────────────────────────────────────
+const DEFAULT_TTL_SECONDS = 1800;
 
 export class SessionStore {
   private readonly redis: RedisType;
@@ -57,17 +38,7 @@ export class SessionStore {
     this.redis = redis;
   }
 
-  /**
-   * Create a new checkout session for the given tenant.
-   *
-   * @param tenantId - The tenant that owns the session.
-   * @param ttlSeconds - Time-to-live in seconds (default 1800).
-   * @returns The newly created session.
-   */
-  async create(
-    tenantId: string,
-    ttlSeconds: number = DEFAULT_TTL_SECONDS,
-  ): Promise<CheckoutSession> {
+  async create(tenantId: string, ttlSeconds: number = DEFAULT_TTL_SECONDS): Promise<CheckoutSession> {
     const id = crypto.randomUUID();
     const now = new Date();
     const expiresAt = new Date(now.getTime() + ttlSeconds * 1000);
@@ -86,72 +57,41 @@ export class SessionStore {
       expires_at: expiresAt.toISOString(),
     };
 
-    await this.redis.setex(
-      `${KEY_PREFIX}${id}`,
-      ttlSeconds,
-      JSON.stringify(session),
-    );
-
+    await this.redis.setex(buildSessionKey(id), ttlSeconds, JSON.stringify(session));
     return session;
   }
 
-  /**
-   * Retrieve a session by ID.
-   *
-   * @returns The session, or `null` if the key does not exist (e.g. expired).
-   */
   async get(id: string): Promise<CheckoutSession | null> {
-    const raw = await this.redis.get(`${KEY_PREFIX}${id}`);
-    if (raw === null) {
-      return null;
-    }
+    const raw = await this.redis.get(buildSessionKey(id));
+    if (raw === null) return null;
     return JSON.parse(raw) as CheckoutSession;
   }
 
-  /**
-   * Update a session with partial data. The TTL is refreshed on every update
-   * using the remaining time derived from `expires_at`, or falls back to the
-   * default TTL when the expiry cannot be determined.
-   *
-   * @returns The updated session, or `null` if the session does not exist.
-   */
-  async update(
-    id: string,
-    data: UpdateSessionData,
-  ): Promise<CheckoutSession | null> {
+  async update(id: string, data: UpdateSessionData): Promise<CheckoutSession | null> {
     const existing = await this.get(id);
-    if (existing === null) {
-      return null;
-    }
+    if (existing === null) return null;
 
     const updated: CheckoutSession = {
       ...existing,
       ...data,
-      // Preserve immutable fields regardless of what was passed in `data`.
       id: existing.id,
       tenant_id: existing.tenant_id,
       created_at: existing.created_at,
     };
 
-    const ttl = await this.redis.ttl(`${KEY_PREFIX}${id}`);
+    const ttl = await this.redis.ttl(buildSessionKey(id));
     const effectiveTtl = ttl > 0 ? ttl : DEFAULT_TTL_SECONDS;
 
-    await this.redis.setex(
-      `${KEY_PREFIX}${id}`,
-      effectiveTtl,
-      JSON.stringify(updated),
-    );
-
+    await this.redis.setex(buildSessionKey(id), effectiveTtl, JSON.stringify(updated));
     return updated;
   }
 
-  /**
-   * Delete a session by ID.
-   *
-   * @returns `true` if a session was deleted, `false` otherwise.
-   */
   async delete(id: string): Promise<boolean> {
-    const removed = await this.redis.del(`${KEY_PREFIX}${id}`);
+    const removed = await this.redis.del(buildSessionKey(id));
     return removed > 0;
   }
+}
+
+function buildSessionKey(id: string): string {
+  return `${KEY_PREFIX}${id}`;
 }

@@ -5,8 +5,8 @@ import { AdapterError } from '@ucp-middleware/core';
 const searchQuerySchema = z.object({
   q: z.string().min(1, 'q is required'),
   category: z.string().optional(),
-  min_price: z.coerce.number().int('min_price must be an integer').nonnegative().optional(),
-  max_price: z.coerce.number().int('max_price must be an integer').nonnegative().optional(),
+  min_price_cents: z.coerce.number().int('min_price_cents must be an integer').nonnegative().optional(),
+  max_price_cents: z.coerce.number().int('max_price_cents must be an integer').nonnegative().optional(),
   in_stock: z
     .enum(['true', 'false'])
     .transform((v) => v === 'true')
@@ -34,8 +34,8 @@ export async function productRoutes(app: FastifyInstance): Promise<void> {
     const products = await request.adapter.searchProducts({
       q: query.q,
       category: query.category,
-      min_price: query.min_price,
-      max_price: query.max_price,
+      min_price_cents: query.min_price_cents,
+      max_price_cents: query.max_price_cents,
       in_stock: query.in_stock,
       limit: query.limit,
       page: query.page,

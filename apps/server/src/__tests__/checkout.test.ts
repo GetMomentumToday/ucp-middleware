@@ -51,7 +51,7 @@ describe('E2E Checkout: MockAdapter full flow', () => {
       headers: HEADERS,
     });
     expect(detailRes.statusCode).toBe(200);
-    const product = JSON.parse(detailRes.body) as { id: string; price: number };
+    const product = JSON.parse(detailRes.body) as { id: string; price_cents: number };
     expect(product.id).toBe(productId);
 
     // 4. POST /ucp/checkout-sessions — create session
@@ -78,7 +78,7 @@ describe('E2E Checkout: MockAdapter full flow', () => {
           line1: '123 Main St',
           city: 'Austin',
           postal_code: '78701',
-          country: 'US',
+          country_iso2: 'US',
         },
       }),
     });
@@ -132,7 +132,7 @@ describe('E2E Checkout: MockAdapter full flow', () => {
           line1: '456 Oak Ave',
           city: 'Denver',
           postal_code: '80202',
-          country: 'US',
+          country_iso2: 'US',
         },
       }),
     });

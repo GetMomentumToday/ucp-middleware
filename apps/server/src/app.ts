@@ -27,20 +27,13 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     },
   });
 
-  // Decorate with DI container
   app.decorate('container', container);
 
-  // Plugins
   await app.register(sensible);
-
-  // Error handling
   await app.register(errorHandlerPlugin);
-
-  // Middleware (order matters: tenant first, then agent header)
   await app.register(tenantResolutionPlugin);
   await app.register(agentHeaderPlugin);
 
-  // Routes
   await app.register(healthRoutes);
   await app.register(discoveryRoutes);
   await app.register(productRoutes);

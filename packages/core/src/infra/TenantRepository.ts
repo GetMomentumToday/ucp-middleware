@@ -9,7 +9,6 @@ import { eq } from 'drizzle-orm';
 import { tenants } from './schema.js';
 import type { Database } from './db.js';
 
-// ─── Public types ───────────────────────────────────────────────────────────
 
 /** Immutable tenant record as returned by the repository. */
 export interface Tenant {
@@ -41,7 +40,6 @@ export interface UpdateTenantInput {
   readonly settings?: unknown;
 }
 
-// ─── Repository ─────────────────────────────────────────────────────────────
 
 export class TenantRepository {
   private readonly db: Database;
@@ -110,7 +108,6 @@ export class TenantRepository {
   }
 }
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
 
 /** Map a raw DB row to an immutable Tenant object. */
 function toTenant(row: typeof tenants.$inferSelect): Tenant {

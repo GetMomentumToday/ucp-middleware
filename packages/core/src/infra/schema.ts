@@ -1,11 +1,3 @@
-/**
- * Drizzle ORM schema definitions for UCP Middleware.
- *
- * Tables:
- * - tenants: multi-tenant configuration
- * - identityLinks: stub for Phase 4 identity linking
- */
-
 import {
   pgTable,
   uuid,
@@ -13,8 +5,6 @@ import {
   jsonb,
   timestamp,
 } from 'drizzle-orm/pg-core';
-
-// ─── Tenants ────────────────────────────────────────────────────────────────
 
 export const tenants = pgTable('tenants', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -26,8 +16,6 @@ export const tenants = pgTable('tenants', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
-
-// ─── Identity Links (Phase 4 stub) ─────────────────────────────────────────
 
 export const identityLinks = pgTable('identity_links', {
   id: uuid('id').defaultRandom().primaryKey(),

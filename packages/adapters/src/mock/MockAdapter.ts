@@ -26,9 +26,9 @@ interface CartState {
 interface OrderState {
   readonly id: string;
   readonly status: 'processing';
-  readonly total: number;
+  readonly total_cents: number;
   readonly currency: string;
-  readonly created_at: string;
+  readonly created_at_iso: string;
 }
 
 /**
@@ -55,14 +55,10 @@ export class MockAdapter implements PlatformAdapter {
     let filtered = MOCK_PRODUCTS.filter((p) => {
       const matchesText = p.title.toLowerCase().includes(q) || (p.description?.toLowerCase().includes(q) ?? false);
       const matchesStock = query.in_stock === undefined || p.in_stock === query.in_stock;
-      const matchesMinPrice = query.min_price === undefined || p.price >= query.min_price;
-      const matchesMaxPrice = query.max_price === undefined || p.price <= query.max_price;
+      const matchesMinPrice = query.min_price_cents === undefined || p.price_cents >= query.min_price_cents;
+      const matchesMaxPrice = query.max_price_cents === undefined || p.price_cents <= query.max_price_cents;
       return matchesText && matchesStock && matchesMinPrice && matchesMaxPrice;
     });
-
-    if (query.category) {
-      // MockAdapter has no category concept — return all matches
-    }
 
     const start = (page - 1) * limit;
     filtered = filtered.slice(start, start + limit);
@@ -95,11 +91,7 @@ export class MockAdapter implements PlatformAdapter {
       if (item.quantity > MAX_STOCK_QUANTITY) {
         throw outOfStock(item.product_id);
       }
-      // Validate product exists
-      const product = MOCK_PRODUCTS.find((p) => p.id === item.product_id);
-      if (!product) {
-        throw notFound('PRODUCT_NOT_FOUND', item.product_id);
-      }
+      this.validateProductExists(item.product_id);
     }
 
     const updatedCart: CartState = {
@@ -116,12 +108,12 @@ export class MockAdapter implements PlatformAdapter {
       throw notFound('CART_NOT_FOUND', cartId);
     }
 
-    const subtotal = cart.items.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
-    const shipping = FLAT_SHIPPING_CENTS;
-    const tax = Math.round(subtotal * TAX_RATE);
-    const total = subtotal + shipping + tax;
+    const subtotalCents = cart.items.reduce((sum, item) => sum + item.unit_price_cents * item.quantity, 0);
+    const shippingCents = FLAT_SHIPPING_CENTS;
+    const taxCents = Math.round(subtotalCents * TAX_RATE);
+    const totalCents = subtotalCents + shippingCents + taxCents;
 
-    return { subtotal, shipping, tax, total, currency: cart.currency };
+    return { subtotal_cents: subtotalCents, shipping_cents: shippingCents, tax_cents: taxCents, total_cents: totalCents, currency: cart.currency };
   }
 
   async placeOrder(cartId: string, payment: PaymentToken): Promise<Order> {
@@ -130,22 +122,29 @@ export class MockAdapter implements PlatformAdapter {
     }
 
     const cart = this.carts.get(cartId);
-    const subtotal = cart
-      ? cart.items.reduce((sum, item) => sum + item.unit_price * item.quantity, 0)
+    const subtotalCents = cart
+      ? cart.items.reduce((sum, item) => sum + item.unit_price_cents * item.quantity, 0)
       : 0;
-    const total = subtotal + FLAT_SHIPPING_CENTS + Math.round(subtotal * TAX_RATE);
+    const totalCents = subtotalCents + FLAT_SHIPPING_CENTS + Math.round(subtotalCents * TAX_RATE);
 
     const id = `mock-order-${String(this.nextOrderId++).padStart(4, '0')}`;
     const order: OrderState = {
       id,
       status: 'processing',
-      total,
+      total_cents: totalCents,
       currency: cart?.currency ?? 'USD',
-      created_at: new Date().toISOString(),
+      created_at_iso: new Date().toISOString(),
     };
     this.orders.set(id, order);
 
     return order;
+  }
+
+  private validateProductExists(productId: string): void {
+    const product = MOCK_PRODUCTS.find((p) => p.id === productId);
+    if (!product) {
+      throw notFound('PRODUCT_NOT_FOUND', productId);
+    }
   }
 
   async getOrder(id: string): Promise<Order> {

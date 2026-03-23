@@ -3,8 +3,9 @@ import type { AwilixContainer } from 'awilix';
 import type { Cradle } from '../container/index.js';
 import type { Tenant, PlatformAdapter } from '@ucp-middleware/core';
 
-const CACHE_TTL_SECONDS = 300; // 5 minutes
+const CACHE_TTL_SECONDS = 300;
 const CACHE_PREFIX = 'tenant:domain:';
+const SKIP_PATHS = new Set(['/health', '/ready']);
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -16,16 +17,20 @@ declare module 'fastify' {
   }
 }
 
+function shouldSkipTenantResolution(url: string): boolean {
+  return SKIP_PATHS.has(url);
+}
+
+function buildTenantCacheKey(host: string): string {
+  return `${CACHE_PREFIX}${host}`;
+}
+
 export async function tenantResolutionPlugin(app: FastifyInstance): Promise<void> {
   app.decorateRequest('tenant', null);
   app.decorateRequest('adapter', null);
 
   app.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
-    // Skip for health/ready endpoints
-    const url = request.url;
-    if (url === '/health' || url === '/ready') {
-      return;
-    }
+    if (shouldSkipTenantResolution(request.url)) return;
 
     const container = app.container;
     const redis = container.resolve('redis');
@@ -39,19 +44,7 @@ export async function tenantResolutionPlugin(app: FastifyInstance): Promise<void
       });
     }
 
-    // Check Redis cache first
-    const cacheKey = `${CACHE_PREFIX}${host}`;
-    const cached = await redis.get(cacheKey);
-
-    let tenant: Tenant | null;
-    if (cached) {
-      tenant = JSON.parse(cached) as Tenant;
-    } else {
-      tenant = await tenantRepository.findByDomain(host);
-      if (tenant) {
-        await redis.set(cacheKey, JSON.stringify(tenant), 'EX', CACHE_TTL_SECONDS);
-      }
-    }
+    const tenant = await resolveTenantByHost(redis, tenantRepository, host);
 
     if (!tenant) {
       return reply.status(404).send({
@@ -59,7 +52,6 @@ export async function tenantResolutionPlugin(app: FastifyInstance): Promise<void
       });
     }
 
-    // Resolve adapter for this tenant's platform
     if (!adapterRegistry.has(tenant.platform)) {
       return reply.status(500).send({
         error: { code: 'PLATFORM_ERROR', message: `No adapter for platform: ${tenant.platform}` },
@@ -69,4 +61,24 @@ export async function tenantResolutionPlugin(app: FastifyInstance): Promise<void
     request.tenant = tenant;
     request.adapter = adapterRegistry.get(tenant.platform);
   });
+}
+
+async function resolveTenantByHost(
+  redis: { get(key: string): Promise<string | null>; setex(key: string, ttl: number, value: string): Promise<unknown> },
+  tenantRepository: { findByDomain(domain: string): Promise<Tenant | null> },
+  host: string,
+): Promise<Tenant | null> {
+  const cacheKey = buildTenantCacheKey(host);
+  const cached = await redis.get(cacheKey);
+
+  if (cached) {
+    return JSON.parse(cached) as Tenant;
+  }
+
+  const tenant = await tenantRepository.findByDomain(host);
+  if (tenant) {
+    await redis.setex(cacheKey, CACHE_TTL_SECONDS, JSON.stringify(tenant));
+  }
+
+  return tenant;
 }

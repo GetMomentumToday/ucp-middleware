@@ -1,14 +1,11 @@
 /**
  * Normalised commerce domain types shared across all adapters.
- * All prices are in cents (integer). All types are immutable.
+ * All monetary values are integers in the smallest currency unit (cents).
+ * All types are immutable.
  */
 
-// ──────────────────────────────────────────────
-// UCP Business Profile
-// ──────────────────────────────────────────────
-
 export interface UCPProfile {
-  readonly ucp: string; // spec version, e.g. "2026-01-11"
+  readonly ucp: string;
   readonly name: string;
   readonly capabilities: readonly Capability[];
   readonly links: readonly ProfileLink[];
@@ -31,15 +28,11 @@ export interface JsonWebKey {
   readonly [key: string]: unknown;
 }
 
-// ──────────────────────────────────────────────
-// Product
-// ──────────────────────────────────────────────
-
 export interface Product {
   readonly id: string;
   readonly title: string;
   readonly description: string | null;
-  readonly price: number; // cents
+  readonly price_cents: number;
   readonly currency: string;
   readonly in_stock: boolean;
   readonly stock_quantity: number;
@@ -50,7 +43,7 @@ export interface Product {
 export interface ProductVariant {
   readonly id: string;
   readonly title: string;
-  readonly price: number; // cents
+  readonly price_cents: number;
   readonly in_stock: boolean;
   readonly attributes: Readonly<Record<string, string>>;
 }
@@ -58,16 +51,12 @@ export interface ProductVariant {
 export interface SearchQuery {
   readonly q: string;
   readonly category?: string | undefined;
-  readonly min_price?: number | undefined; // cents
-  readonly max_price?: number | undefined; // cents
+  readonly min_price_cents?: number | undefined;
+  readonly max_price_cents?: number | undefined;
   readonly in_stock?: boolean | undefined;
-  readonly limit?: number | undefined; // default 20, max 100
-  readonly page?: number | undefined; // default 1
+  readonly limit?: number | undefined;
+  readonly page?: number | undefined;
 }
-
-// ──────────────────────────────────────────────
-// Cart
-// ──────────────────────────────────────────────
 
 export interface Cart {
   readonly id: string;
@@ -80,12 +69,8 @@ export interface LineItem {
   readonly variant_id?: string;
   readonly title: string;
   readonly quantity: number;
-  readonly unit_price: number; // cents
+  readonly unit_price_cents: number;
 }
-
-// ──────────────────────────────────────────────
-// Checkout / Totals
-// ──────────────────────────────────────────────
 
 export interface CheckoutContext {
   readonly shipping_address: Address;
@@ -93,10 +78,10 @@ export interface CheckoutContext {
 }
 
 export interface Totals {
-  readonly subtotal: number; // cents
-  readonly shipping: number; // cents
-  readonly tax: number; // cents
-  readonly total: number; // cents
+  readonly subtotal_cents: number;
+  readonly shipping_cents: number;
+  readonly tax_cents: number;
+  readonly total_cents: number;
   readonly currency: string;
 }
 
@@ -108,26 +93,18 @@ export interface Address {
   readonly city: string;
   readonly postal_code: string;
   readonly region?: string | undefined;
-  readonly country: string; // ISO 3166-1 alpha-2
+  readonly country_iso2: string;
 }
-
-// ──────────────────────────────────────────────
-// Payment
-// ──────────────────────────────────────────────
 
 export interface PaymentToken {
   readonly token: string;
   readonly provider: string;
 }
 
-// ──────────────────────────────────────────────
-// Order
-// ──────────────────────────────────────────────
-
 export interface Order {
   readonly id: string;
   readonly status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  readonly total: number; // cents
+  readonly total_cents: number;
   readonly currency: string;
-  readonly created_at: string; // ISO 8601
+  readonly created_at_iso: string;
 }

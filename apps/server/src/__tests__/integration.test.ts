@@ -159,7 +159,7 @@ describe('Integration: MockAdapter endpoints', () => {
       const body = JSON.parse(res.body) as Record<string, unknown>;
       expect(body).toHaveProperty('id', 'prod-001');
       expect(body).toHaveProperty('title');
-      expect(body).toHaveProperty('price');
+      expect(body).toHaveProperty('price_cents');
       expect(body).toHaveProperty('in_stock');
       expect(body).toHaveProperty('variants');
     });

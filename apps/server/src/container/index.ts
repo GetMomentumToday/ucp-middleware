@@ -30,15 +30,12 @@ export function createAppContainer(env: Env): AwilixContainer<Cradle> {
     injectionMode: InjectionMode.CLASSIC,
   });
 
-  // Infrastructure
   const db = createDb({ connectionString: env.DATABASE_URL });
   const redis = new Redis.default(env.REDIS_URL, { lazyConnect: true });
 
-  // Adapter registry
   const adapterRegistry = new AdapterRegistry();
   adapterRegistry.register('mock', new MockAdapter());
 
-  // Session store
   const sessionStore = new SessionStore(redis);
 
   container.register({

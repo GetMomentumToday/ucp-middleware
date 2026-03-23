@@ -1,8 +1,14 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import type { CheckoutSession } from '@ucp-middleware/core';
-
-// ── Schemas ──────────────────────────────────────────────────────────────────
+import { AdapterError, type CheckoutSession } from '@ucp-middleware/core';
+import {
+  sendSessionError,
+  isSessionExpired,
+  isSessionOwnedByTenant,
+  hasSessionAlreadyCompleted,
+  findExistingSessionByIdempotencyKey,
+  storeIdempotencyMapping,
+} from './checkout-helpers.js';
 
 const addressSchema = z.object({
   first_name: z.string().min(1),
@@ -12,7 +18,7 @@ const addressSchema = z.object({
   city: z.string().min(1),
   postal_code: z.string().min(1),
   region: z.string().optional(),
-  country: z.string().length(2),
+  country_iso2: z.string().length(2),
 });
 
 const createSessionSchema = z.object({
@@ -32,36 +38,23 @@ const completeSessionSchema = z.object({
   }),
 });
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-function sessionErrorReply(reply: FastifyReply, code: string, message: string, httpStatus: number): FastifyReply {
-  return reply.status(httpStatus).send({
-    error: { code, message, http_status: httpStatus },
-  });
-}
-
-function validationErrorReply(reply: FastifyReply, error: z.ZodError): FastifyReply {
+function sendValidationError(reply: FastifyReply, error: z.ZodError): FastifyReply {
   const message = error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join('; ');
-  return sessionErrorReply(reply, 'VALIDATION_ERROR', message, 400);
+  return sendSessionError(reply, 'VALIDATION_ERROR', message, 400);
 }
-
-// ── Routes ───────────────────────────────────────────────────────────────────
 
 export async function checkoutRoutes(app: FastifyInstance): Promise<void> {
-  // ── UCPM-25: POST /ucp/checkout-sessions ──────────────────────────────
-
   app.post('/ucp/checkout-sessions', async (request: FastifyRequest, reply: FastifyReply) => {
     const parsed = createSessionSchema.safeParse(request.body);
-    if (!parsed.success) return validationErrorReply(reply, parsed.error);
+    if (!parsed.success) return sendValidationError(reply, parsed.error);
 
     const sessionStore = app.container.resolve('sessionStore');
+    const redis = app.container.resolve('redis');
 
-    // UCPM-30: Idempotency — check if a session with this key already exists
     if (parsed.data.idempotency_key) {
-      // Store idempotency key → session ID mapping in Redis
-      const redis = app.container.resolve('redis');
-      const idempKey = `idempotency:${request.tenant.id}:${parsed.data.idempotency_key}`;
-      const existingId = await redis.get(idempKey);
+      const existingId = await findExistingSessionByIdempotencyKey(
+        redis, request.tenant.id, parsed.data.idempotency_key,
+      );
       if (existingId) {
         const existing = await sessionStore.get(existingId);
         if (existing) return reply.status(200).send(existing);
@@ -70,7 +63,6 @@ export async function checkoutRoutes(app: FastifyInstance): Promise<void> {
 
     const session = await sessionStore.create(request.tenant.id);
 
-    // Update with optional fields
     let result: CheckoutSession | null = session;
     if (parsed.data.cart_id || parsed.data.idempotency_key) {
       const updateFields: Record<string, unknown> = {};
@@ -79,69 +71,34 @@ export async function checkoutRoutes(app: FastifyInstance): Promise<void> {
       result = await sessionStore.update(session.id, updateFields);
     }
 
-    // Store idempotency mapping
     if (parsed.data.idempotency_key) {
-      const redis = app.container.resolve('redis');
-      const idempKey = `idempotency:${request.tenant.id}:${parsed.data.idempotency_key}`;
-      await redis.setex(idempKey, 1800, session.id);
+      await storeIdempotencyMapping(redis, request.tenant.id, parsed.data.idempotency_key, session.id);
     }
 
     return reply.status(201).send(result ?? session);
   });
 
-  // ── UCPM-26: PATCH /ucp/checkout-sessions/:id ─────────────────────────
-
   app.patch<{ Params: { id: string } }>(
     '/ucp/checkout-sessions/:id',
     async (request, reply: FastifyReply) => {
       const parsed = patchSessionSchema.safeParse(request.body);
-      if (!parsed.success) return validationErrorReply(reply, parsed.error);
+      if (!parsed.success) return sendValidationError(reply, parsed.error);
 
       const sessionStore = app.container.resolve('sessionStore');
       const session = await sessionStore.get(request.params.id);
 
-      if (!session) {
-        return sessionErrorReply(reply, 'SESSION_NOT_FOUND', `Session not found: ${request.params.id}`, 404);
-      }
+      if (!session) return sendSessionError(reply, 'SESSION_NOT_FOUND', `Session not found: ${request.params.id}`, 404);
+      if (isSessionExpired(session)) return sendSessionError(reply, 'SESSION_EXPIRED', 'Checkout session has expired', 410);
+      if (session.status !== 'incomplete') return sendSessionError(reply, 'INVALID_SESSION_STATE', `Cannot modify session in state: ${session.status}`, 409);
+      if (!isSessionOwnedByTenant(session, request.tenant)) return sendSessionError(reply, 'SESSION_NOT_FOUND', `Session not found: ${request.params.id}`, 404);
 
-      // UCPM-32: Expired session returns 410
-      if (session.status === 'expired') {
-        return sessionErrorReply(reply, 'SESSION_EXPIRED', 'Checkout session has expired', 410);
-      }
-
-      if (session.status !== 'incomplete') {
-        return sessionErrorReply(reply, 'INVALID_SESSION_STATE', `Cannot modify session in state: ${session.status}`, 409);
-      }
-
-      // Verify tenant ownership
-      if (session.tenant_id !== request.tenant.id) {
-        return sessionErrorReply(reply, 'SESSION_NOT_FOUND', `Session not found: ${request.params.id}`, 404);
-      }
-
-      // Build update
       const updateData: Record<string, unknown> = {};
+      if (parsed.data.shipping_address) updateData['shipping_address'] = parsed.data.shipping_address;
+      if (parsed.data.billing_address) updateData['billing_address'] = parsed.data.billing_address;
 
       if (parsed.data.shipping_address) {
-        updateData['shipping_address'] = parsed.data.shipping_address;
-      }
-      if (parsed.data.billing_address) {
-        updateData['billing_address'] = parsed.data.billing_address;
-      }
-
-      // If shipping address is set, calculate totals via adapter
-      if (parsed.data.shipping_address) {
-        try {
-          const cartId = session.cart_id;
-          if (cartId) {
-            const totals = await request.adapter.calculateTotals(cartId, {
-              shipping_address: parsed.data.shipping_address,
-              billing_address: parsed.data.billing_address,
-            });
-            updateData['totals'] = totals;
-          }
-        } catch {
-          // If cart totals fail, still proceed — totals will be null
-        }
+        const totals = await calculateTotalsWithFallback(request, session, parsed.data.shipping_address, parsed.data.billing_address);
+        if (totals) updateData['totals'] = totals;
         updateData['status'] = 'ready_for_complete';
       }
 
@@ -150,39 +107,21 @@ export async function checkoutRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
-  // ── UCPM-28: POST /ucp/checkout-sessions/:id/complete ──────────────────
-
   app.post<{ Params: { id: string } }>(
     '/ucp/checkout-sessions/:id/complete',
     async (request, reply: FastifyReply) => {
       const parsed = completeSessionSchema.safeParse(request.body);
-      if (!parsed.success) return validationErrorReply(reply, parsed.error);
+      if (!parsed.success) return sendValidationError(reply, parsed.error);
 
       const sessionStore = app.container.resolve('sessionStore');
       const session = await sessionStore.get(request.params.id);
 
-      if (!session) {
-        return sessionErrorReply(reply, 'SESSION_NOT_FOUND', `Session not found: ${request.params.id}`, 404);
-      }
+      if (!session) return sendSessionError(reply, 'SESSION_NOT_FOUND', `Session not found: ${request.params.id}`, 404);
+      if (isSessionExpired(session)) return sendSessionError(reply, 'SESSION_EXPIRED', 'Checkout session has expired', 410);
+      if (hasSessionAlreadyCompleted(session)) return reply.status(200).send(session);
+      if (session.status !== 'ready_for_complete') return sendSessionError(reply, 'INVALID_SESSION_STATE', `Session must be in ready_for_complete state, got: ${session.status}`, 409);
+      if (!isSessionOwnedByTenant(session, request.tenant)) return sendSessionError(reply, 'SESSION_NOT_FOUND', `Session not found: ${request.params.id}`, 404);
 
-      if (session.status === 'expired') {
-        return sessionErrorReply(reply, 'SESSION_EXPIRED', 'Checkout session has expired', 410);
-      }
-
-      // Idempotency: if already completed, return existing result
-      if (session.status === 'completed' && session.order_id) {
-        return reply.status(200).send(session);
-      }
-
-      if (session.status !== 'ready_for_complete') {
-        return sessionErrorReply(reply, 'INVALID_SESSION_STATE', `Session must be in ready_for_complete state, got: ${session.status}`, 409);
-      }
-
-      if (session.tenant_id !== request.tenant.id) {
-        return sessionErrorReply(reply, 'SESSION_NOT_FOUND', `Session not found: ${request.params.id}`, 404);
-      }
-
-      // Place order via adapter (cart_id may be null for simple checkouts)
       const cartId = session.cart_id ?? '';
       const order = await request.adapter.placeOrder(cartId, parsed.data.payment);
 
@@ -195,39 +134,21 @@ export async function checkoutRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
-  // ── UCPM-29: POST /ucp/checkout-sessions/:id/cancel ────────────────────
-
   app.post<{ Params: { id: string } }>(
     '/ucp/checkout-sessions/:id/cancel',
     async (request, reply: FastifyReply) => {
       const sessionStore = app.container.resolve('sessionStore');
       const session = await sessionStore.get(request.params.id);
 
-      if (!session) {
-        return sessionErrorReply(reply, 'SESSION_NOT_FOUND', `Session not found: ${request.params.id}`, 404);
-      }
+      if (!session) return sendSessionError(reply, 'SESSION_NOT_FOUND', `Session not found: ${request.params.id}`, 404);
+      if (!isSessionOwnedByTenant(session, request.tenant)) return sendSessionError(reply, 'SESSION_NOT_FOUND', `Session not found: ${request.params.id}`, 404);
+      if (session.status === 'completed') return sendSessionError(reply, 'INVALID_SESSION_STATE', 'Cannot cancel a completed session', 409);
+      if (session.status === 'cancelled') return reply.status(200).send(session);
 
-      if (session.tenant_id !== request.tenant.id) {
-        return sessionErrorReply(reply, 'SESSION_NOT_FOUND', `Session not found: ${request.params.id}`, 404);
-      }
-
-      if (session.status === 'completed') {
-        return sessionErrorReply(reply, 'INVALID_SESSION_STATE', 'Cannot cancel a completed session', 409);
-      }
-
-      if (session.status === 'cancelled') {
-        return reply.status(200).send(session);
-      }
-
-      const cancelled = await sessionStore.update(request.params.id, {
-        status: 'cancelled',
-      });
-
+      const cancelled = await sessionStore.update(request.params.id, { status: 'cancelled' });
       return reply.status(200).send(cancelled);
     },
   );
-
-  // ── GET /ucp/checkout-sessions/:id ────────────────────────────────────
 
   app.get<{ Params: { id: string } }>(
     '/ucp/checkout-sessions/:id',
@@ -235,19 +156,12 @@ export async function checkoutRoutes(app: FastifyInstance): Promise<void> {
       const sessionStore = app.container.resolve('sessionStore');
       const session = await sessionStore.get(request.params.id);
 
-      if (!session) {
-        return sessionErrorReply(reply, 'SESSION_NOT_FOUND', `Session not found: ${request.params.id}`, 404);
-      }
-
-      if (session.tenant_id !== request.tenant.id) {
-        return sessionErrorReply(reply, 'SESSION_NOT_FOUND', `Session not found: ${request.params.id}`, 404);
-      }
+      if (!session) return sendSessionError(reply, 'SESSION_NOT_FOUND', `Session not found: ${request.params.id}`, 404);
+      if (!isSessionOwnedByTenant(session, request.tenant)) return sendSessionError(reply, 'SESSION_NOT_FOUND', `Session not found: ${request.params.id}`, 404);
 
       return reply.status(200).send(session);
     },
   );
-
-  // ── GET /ucp/orders/:id ───────────────────────────────────────────────
 
   app.get<{ Params: { id: string } }>(
     '/ucp/orders/:id',
@@ -256,11 +170,30 @@ export async function checkoutRoutes(app: FastifyInstance): Promise<void> {
         const order = await request.adapter.getOrder(request.params.id);
         return reply.status(200).send(order);
       } catch (err) {
-        if (err instanceof Error && 'code' in err && (err as { code: string }).code === 'ORDER_NOT_FOUND') {
-          return sessionErrorReply(reply, 'ORDER_NOT_FOUND', `Order not found: ${request.params.id}`, 404);
+        if (err instanceof AdapterError && err.code === 'ORDER_NOT_FOUND') {
+          return sendSessionError(reply, 'ORDER_NOT_FOUND', `Order not found: ${request.params.id}`, 404);
         }
         throw err;
       }
     },
   );
+}
+
+async function calculateTotalsWithFallback(
+  request: FastifyRequest,
+  session: CheckoutSession,
+  shippingAddress: z.infer<typeof addressSchema>,
+  billingAddress: z.infer<typeof addressSchema> | undefined,
+): Promise<unknown> {
+  const cartId = session.cart_id;
+  if (!cartId) return null;
+
+  try {
+    return await request.adapter.calculateTotals(cartId, {
+      shipping_address: shippingAddress,
+      billing_address: billingAddress,
+    });
+  } catch {
+    return null;
+  }
 }

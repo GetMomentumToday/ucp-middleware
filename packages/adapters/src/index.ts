@@ -8,8 +8,5 @@
 export { MockAdapter } from './mock/MockAdapter.js';
 export { MagentoAdapter } from './magento/MagentoAdapter.js';
 export type { MagentoAdapterConfig } from './magento/MagentoAdapter.js';
-
 export { ShopwareAdapter } from './shopware/ShopwareAdapter.js';
-
-// Future:
-// export { ShopifyAdapter } from './shopify/ShopifyAdapter.js';
+export type { ShopwareConfig } from './shopware/ShopwareAdapter.js';
