@@ -1,4 +1,4 @@
-# Contributing to UCP Middleware
+# Contributing to UCP Gateway
 
 Thank you for your interest in contributing! This guide covers everything you need to get started.
 
