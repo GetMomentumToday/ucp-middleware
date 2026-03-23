@@ -23,8 +23,8 @@ export type {
   Order,
 } from './types/commerce.js';
 
-export { AdapterError, notFound, outOfStock } from './types/errors.js';
-export type { AdapterErrorCode } from './types/errors.js';
+export { AdapterError, notFound, outOfStock, EscalationRequiredError } from './types/errors.js';
+export type { AdapterErrorCode, EscalationDetails } from './types/errors.js';
 
 export { AdapterRegistry } from './adapter-registry.js';
 

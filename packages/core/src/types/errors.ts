@@ -29,3 +29,19 @@ export function notFound(code: 'PRODUCT_NOT_FOUND' | 'ORDER_NOT_FOUND' | 'CART_N
 export function outOfStock(productId: string): AdapterError {
   return new AdapterError('OUT_OF_STOCK', `Product ${productId} is out of stock`, 409);
 }
+
+export interface EscalationDetails {
+  readonly reason: string;
+  readonly message: string;
+  readonly continue_url: string;
+}
+
+export class EscalationRequiredError extends Error {
+  readonly escalation: EscalationDetails;
+
+  constructor(escalation: EscalationDetails) {
+    super(escalation.message);
+    this.name = 'EscalationRequiredError';
+    this.escalation = escalation;
+  }
+}

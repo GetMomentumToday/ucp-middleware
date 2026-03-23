@@ -1,13 +1,15 @@
 import crypto from 'node:crypto';
 import type { Redis as RedisType } from 'ioredis';
 import type { Address, Totals } from '../types/commerce.js';
+import type { EscalationDetails } from '../types/errors.js';
 
 export type SessionStatus =
   | 'incomplete'
   | 'ready_for_complete'
   | 'completed'
   | 'cancelled'
-  | 'expired';
+  | 'expired'
+  | 'requires_escalation';
 
 export interface CheckoutSession {
   readonly id: string;
@@ -19,6 +21,7 @@ export interface CheckoutSession {
   readonly totals: Totals | null;
   readonly order_id: string | null;
   readonly idempotency_key: string | null;
+  readonly escalation: EscalationDetails | null;
   readonly created_at: string;
   readonly expires_at: string;
 }
@@ -53,6 +56,7 @@ export class SessionStore {
       totals: null,
       order_id: null,
       idempotency_key: null,
+      escalation: null,
       created_at: now.toISOString(),
       expires_at: expiresAt.toISOString(),
     };

@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { AdapterError, type CheckoutSession } from '@ucp-middleware/core';
+import { AdapterError, EscalationRequiredError, type CheckoutSession } from '@ucp-middleware/core';
 import {
   sendSessionError,
   isSessionExpired,
@@ -123,14 +123,26 @@ export async function checkoutRoutes(app: FastifyInstance): Promise<void> {
       if (!isSessionOwnedByTenant(session, request.tenant)) return sendSessionError(reply, 'SESSION_NOT_FOUND', `Session not found: ${request.params.id}`, 404);
 
       const cartId = session.cart_id ?? '';
-      const order = await request.adapter.placeOrder(cartId, parsed.data.payment);
 
-      const completed = await sessionStore.update(request.params.id, {
-        status: 'completed',
-        order_id: order.id,
-      });
+      try {
+        const order = await request.adapter.placeOrder(cartId, parsed.data.payment);
 
-      return reply.status(200).send(completed);
+        const completed = await sessionStore.update(request.params.id, {
+          status: 'completed',
+          order_id: order.id,
+        });
+
+        return reply.status(200).send(completed);
+      } catch (err) {
+        if (err instanceof EscalationRequiredError) {
+          const escalated = await sessionStore.update(request.params.id, {
+            status: 'requires_escalation',
+            escalation: err.escalation,
+          });
+          return reply.status(200).send(escalated);
+        }
+        throw err;
+      }
     },
   );
 

@@ -26,6 +26,7 @@ export class MockSessionStore {
       totals: null,
       order_id: null,
       idempotency_key: null,
+      escalation: null,
       created_at: now.toISOString(),
       expires_at: expiresAt.toISOString(),
     };
