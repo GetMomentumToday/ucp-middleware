@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Report a reproducible bug in UCP Middleware
+about: Report a reproducible bug in UCP Gateway
 title: '[Bug] '
 labels: bug, needs-triage
 assignees: ''
@@ -12,7 +12,7 @@ assignees: ''
 
 ## Environment
 
-- **UCP Middleware version:**
+- **UCP Gateway version:**
 - **Node.js version:** (`node -v`)
 - **OS:**
 - **Adapter(s) affected:** <!-- e.g. Magento, Shopify, all -->
