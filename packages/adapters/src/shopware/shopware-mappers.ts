@@ -1,4 +1,4 @@
-import type { Cart, LineItem, Order, Totals } from '@ucp-middleware/core';
+import type { Cart, LineItem, Order, Total } from '@ucp-middleware/core';
 import type { Product } from '@ucp-middleware/core';
 import type {
   ShopwareCartLineItem,
@@ -69,15 +69,14 @@ function extractLineItemUnitPrice(item: ShopwareCartLineItem): number {
   return item.price ? grossPriceToCents(item.price.unitPrice) : 0;
 }
 
-export function mapShopwareCartToTotals(response: ShopwareCartResponse, currency: string): Totals {
+export function mapShopwareCartToTotals(response: ShopwareCartResponse, _currency: string): readonly Total[] {
   const taxCents = sumCalculatedTaxes(response);
-  return {
-    subtotal_cents: grossPriceToCents(response.price.positionPrice),
-    shipping_cents: computeShippingCents(response),
-    tax_cents: taxCents,
-    total_cents: grossPriceToCents(response.price.totalPrice),
-    currency,
-  };
+  return [
+    { type: 'subtotal', amount: grossPriceToCents(response.price.positionPrice) },
+    { type: 'fulfillment', amount: computeShippingCents(response), display_text: 'Shipping' },
+    { type: 'tax', amount: taxCents },
+    { type: 'total', amount: grossPriceToCents(response.price.totalPrice) },
+  ];
 }
 
 function sumCalculatedTaxes(response: ShopwareCartResponse): number {

@@ -8,8 +8,9 @@ export type { PlatformAdapter } from './types/adapter.js';
 
 export type {
   UCPProfile,
-  Capability,
-  ProfileLink,
+  UCPService,
+  UCPCapabilityRef,
+  UCPPaymentHandlerRef,
   JsonWebKey,
   Product,
   ProductVariant,
@@ -17,10 +18,15 @@ export type {
   Cart,
   LineItem,
   CheckoutContext,
-  Totals,
-  Address,
+  Total,
+  TotalType,
+  PostalAddress,
   PaymentToken,
   Order,
+  Buyer,
+  CheckoutLink,
+  OrderConfirmation,
+  UCPMessage,
 } from './types/commerce.js';
 
 export { AdapterError, notFound, outOfStock, EscalationRequiredError } from './types/errors.js';
@@ -41,6 +47,7 @@ export type {
 export { SessionStore } from './session/SessionStore.js';
 export type {
   CheckoutSession,
+  CheckoutSessionLineItem,
   SessionStatus,
   UpdateSessionData,
 } from './session/SessionStore.js';

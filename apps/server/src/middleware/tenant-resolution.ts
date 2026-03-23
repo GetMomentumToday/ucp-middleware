@@ -41,7 +41,7 @@ export const tenantResolutionPlugin = fp(async function tenantResolution(app: Fa
     const host = request.hostname;
     if (!host) {
       return reply.status(404).send({
-        error: { code: 'UNKNOWN_STORE', message: 'Missing Host header' },
+        messages: [{ type: 'error', code: 'UNKNOWN_STORE', content: 'Missing Host header', severity: 'recoverable' }],
       });
     }
 
@@ -49,7 +49,7 @@ export const tenantResolutionPlugin = fp(async function tenantResolution(app: Fa
 
     if (!tenant) {
       return reply.status(404).send({
-        error: { code: 'UNKNOWN_STORE', message: `No store configured for domain: ${host}` },
+        messages: [{ type: 'error', code: 'UNKNOWN_STORE', content: `No store configured for domain: ${host}`, severity: 'recoverable' }],
       });
     }
 

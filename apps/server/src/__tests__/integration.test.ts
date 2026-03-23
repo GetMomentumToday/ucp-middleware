@@ -37,13 +37,13 @@ describe('Integration: MockAdapter endpoints', () => {
 
       expect(res.statusCode).toBe(200);
       const body = JSON.parse(res.body) as Record<string, unknown>;
-      expect(body).toHaveProperty('ucp', '2026-01-11');
-      expect(body).toHaveProperty('name', 'Mock Store');
-      expect(body).toHaveProperty('capabilities');
-      expect(body).toHaveProperty('links');
+      expect(body).toHaveProperty('ucp');
+      const ucp = body['ucp'] as Record<string, unknown>;
+      expect(ucp['version']).toBe('2026-01-23');
+      expect(ucp).toHaveProperty('services');
+      expect(ucp).toHaveProperty('capabilities');
+      expect(ucp).toHaveProperty('payment_handlers');
       expect(body).toHaveProperty('signing_keys');
-      expect(Array.isArray(body['capabilities'])).toBe(true);
-      expect(Array.isArray(body['links'])).toBe(true);
     });
   });
 
@@ -58,9 +58,8 @@ describe('Integration: MockAdapter endpoints', () => {
       });
 
       expect(res.statusCode).toBe(401);
-      const body = JSON.parse(res.body) as Record<string, unknown>;
-      const error = body['error'] as Record<string, unknown>;
-      expect(error).toHaveProperty('code', 'INVALID_AGENT');
+      const body = JSON.parse(res.body) as { messages: { code: string }[] };
+      expect(body.messages[0]!.code).toBe('INVALID_AGENT');
     });
 
     it('allows requests with valid UCP-Agent header', async () => {
@@ -116,7 +115,7 @@ describe('Integration: MockAdapter endpoints', () => {
 
       expect(res.statusCode).toBe(400);
       const body = JSON.parse(res.body) as Record<string, unknown>;
-      expect(body).toHaveProperty('error');
+      expect(body).toHaveProperty('messages');
     });
 
     it('returns 400 when limit exceeds 100', async () => {
@@ -172,9 +171,8 @@ describe('Integration: MockAdapter endpoints', () => {
       });
 
       expect(res.statusCode).toBe(404);
-      const body = JSON.parse(res.body) as Record<string, unknown>;
-      const error = body['error'] as Record<string, unknown>;
-      expect(error).toHaveProperty('code', 'PRODUCT_NOT_FOUND');
+      const body = JSON.parse(res.body) as { messages: { code: string }[] };
+      expect(body.messages[0]!.code).toBe('PRODUCT_NOT_FOUND');
     });
   });
 

@@ -7,7 +7,7 @@ import type {
   PlatformAdapter,
   Product,
   SearchQuery,
-  Totals,
+  Total,
   UCPProfile,
 } from '@ucp-middleware/core';
 import { AdapterError, notFound } from '@ucp-middleware/core';
@@ -51,19 +51,25 @@ export class ShopwareAdapter implements PlatformAdapter {
 
   async getProfile(): Promise<UCPProfile> {
     const ctx = await this.request<ShopwareContextResponse>('GET', '/store-api/context');
-    const channelName = ctx.salesChannel?.name ?? 'Shopware Store';
     this.cachedCurrency = ctx.currency?.isoCode ?? 'EUR';
 
     return {
-      ucp: '2026-01-11',
-      name: channelName,
-      capabilities: [
-        { name: 'catalog.search', version: '1.0' },
-        { name: 'catalog.get', version: '1.0' },
-      ],
-      links: [
-        { rel: 'self', href: `${this.storeUrl}/store-api` },
-      ],
+      ucp: {
+        version: '2026-01-23',
+        services: {
+          'dev.ucp.shopping': [{
+            version: '2026-01-23',
+            spec: 'https://ucp.dev/latest/specification/checkout/',
+            endpoint: '/checkout-sessions',
+            schema: 'https://ucp.dev/2026-01-23/schemas/shopping/checkout.json',
+            transport: 'rest',
+          }],
+        },
+        capabilities: {
+          'dev.ucp.shopping.checkout': [{ version: '2026-01-23' }],
+        },
+        payment_handlers: {},
+      },
       signing_keys: [],
     };
   }
@@ -115,8 +121,8 @@ export class ShopwareAdapter implements PlatformAdapter {
     return mapShopwareCart(response, this.cachedCurrency);
   }
 
-  async calculateTotals(cartId: string, ctx: CheckoutContext): Promise<Totals> {
-    const countryId = await this.resolveCountryId(cartId, ctx.shipping_address.country_iso2);
+  async calculateTotals(cartId: string, ctx: CheckoutContext): Promise<readonly Total[]> {
+    const countryId = await this.resolveCountryId(cartId, ctx.shipping_address.address_country ?? '');
     await this.requestWithToken(cartId, 'PATCH', '/store-api/context', {
       shippingAddress: buildShippingAddressPayload(ctx, countryId),
     });
@@ -253,11 +259,11 @@ function buildShippingAddressPayload(
   readonly countryId: string;
 } {
   return {
-    firstName: ctx.shipping_address.first_name,
-    lastName: ctx.shipping_address.last_name,
-    street: ctx.shipping_address.line1,
-    city: ctx.shipping_address.city,
-    zipcode: ctx.shipping_address.postal_code,
+    firstName: ctx.shipping_address.first_name ?? '',
+    lastName: ctx.shipping_address.last_name ?? '',
+    street: ctx.shipping_address.street_address ?? '',
+    city: ctx.shipping_address.address_locality ?? '',
+    zipcode: ctx.shipping_address.postal_code ?? '',
     countryId,
   };
 }

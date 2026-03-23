@@ -22,11 +22,12 @@ export const agentHeaderPlugin = fp(async function agentHeader(app: FastifyInsta
 
     if (!isValidAgentHeader(request.headers['ucp-agent'])) {
       void reply.status(401).send({
-        error: {
+        messages: [{
+          type: 'error',
           code: 'INVALID_AGENT',
-          message: 'Missing or invalid UCP-Agent header. Format: "agent-name/version"',
-          http_status: 401,
-        },
+          content: 'Missing or invalid UCP-Agent header. Format: "agent-name/version"',
+          severity: 'recoverable',
+        }],
       });
       return;
     }

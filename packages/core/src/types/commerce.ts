@@ -2,24 +2,35 @@
  * Normalised commerce domain types shared across all adapters.
  * All monetary values are integers in the smallest currency unit (cents).
  * All types are immutable.
+ * Field names follow UCP spec at https://ucp.dev/latest/specification/
  */
 
 export interface UCPProfile {
-  readonly ucp: string;
-  readonly name: string;
-  readonly capabilities: readonly Capability[];
-  readonly links: readonly ProfileLink[];
+  readonly ucp: {
+    readonly version: string;
+    readonly services: Readonly<Record<string, readonly UCPService[]>>;
+    readonly capabilities: Readonly<Record<string, readonly UCPCapabilityRef[]>>;
+    readonly payment_handlers: Readonly<Record<string, readonly UCPPaymentHandlerRef[]>>;
+  };
   readonly signing_keys: readonly JsonWebKey[];
 }
 
-export interface Capability {
-  readonly name: string;
+export interface UCPService {
   readonly version: string;
+  readonly spec: string;
+  readonly endpoint: string;
+  readonly schema: string;
+  readonly transport: 'rest' | 'mcp' | 'a2a' | 'embedded';
 }
 
-export interface ProfileLink {
-  readonly rel: string;
-  readonly href: string;
+export interface UCPCapabilityRef {
+  readonly version: string;
+  readonly config?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export interface UCPPaymentHandlerRef {
+  readonly id: string;
+  readonly version: string;
 }
 
 export interface JsonWebKey {
@@ -73,27 +84,28 @@ export interface LineItem {
 }
 
 export interface CheckoutContext {
-  readonly shipping_address: Address;
-  readonly billing_address?: Address | undefined;
+  readonly shipping_address: PostalAddress;
+  readonly billing_address?: PostalAddress | undefined;
 }
 
-export interface Totals {
-  readonly subtotal_cents: number;
-  readonly shipping_cents: number;
-  readonly tax_cents: number;
-  readonly total_cents: number;
-  readonly currency: string;
+export interface Total {
+  readonly type: TotalType;
+  readonly amount: number;
+  readonly display_text?: string | undefined;
 }
 
-export interface Address {
-  readonly first_name: string;
-  readonly last_name: string;
-  readonly line1: string;
-  readonly line2?: string | undefined;
-  readonly city: string;
-  readonly postal_code: string;
-  readonly region?: string | undefined;
-  readonly country_iso2: string;
+export type TotalType = 'items_discount' | 'subtotal' | 'discount' | 'fulfillment' | 'tax' | 'fee' | 'total';
+
+export interface PostalAddress {
+  readonly first_name?: string | undefined;
+  readonly last_name?: string | undefined;
+  readonly street_address?: string | undefined;
+  readonly extended_address?: string | undefined;
+  readonly address_locality?: string | undefined;
+  readonly address_region?: string | undefined;
+  readonly postal_code?: string | undefined;
+  readonly address_country?: string | undefined;
+  readonly phone_number?: string | undefined;
 }
 
 export interface PaymentToken {
@@ -107,4 +119,31 @@ export interface Order {
   readonly total_cents: number;
   readonly currency: string;
   readonly created_at_iso: string;
+}
+
+export interface Buyer {
+  readonly first_name?: string | undefined;
+  readonly last_name?: string | undefined;
+  readonly email?: string | undefined;
+  readonly phone_number?: string | undefined;
+}
+
+export interface CheckoutLink {
+  readonly type: string;
+  readonly url: string;
+  readonly title?: string | undefined;
+}
+
+export interface OrderConfirmation {
+  readonly id: string;
+  readonly permalink_url: string;
+}
+
+export interface UCPMessage {
+  readonly type: 'error' | 'warning' | 'info';
+  readonly code: string;
+  readonly content: string;
+  readonly severity?: 'recoverable' | 'requires_buyer_input' | 'requires_buyer_review' | undefined;
+  readonly path?: string | undefined;
+  readonly content_type?: 'plain' | 'markdown' | undefined;
 }

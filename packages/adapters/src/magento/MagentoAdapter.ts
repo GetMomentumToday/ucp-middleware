@@ -6,7 +6,7 @@ import type {
   Cart,
   LineItem,
   CheckoutContext,
-  Totals,
+  Total,
   PaymentToken,
   Order,
 } from '@ucp-middleware/core';
@@ -39,23 +39,25 @@ export class MagentoAdapter implements PlatformAdapter {
   }
 
   async getProfile(): Promise<UCPProfile> {
-    const configs = await this.get<MagentoStoreConfig[]>('/rest/V1/store/storeConfigs');
-    const store = configs[0];
-    const storeName = store ? `Magento Store (${store.code})` : 'Magento Store';
+    await this.get<MagentoStoreConfig[]>('/rest/V1/store/storeConfigs');
 
     return {
-      ucp: '2026-01-11',
-      name: storeName,
-      capabilities: [
-        { name: 'catalog.search', version: '1.0' },
-        { name: 'catalog.product', version: '1.0' },
-        { name: 'cart.manage', version: '1.0' },
-        { name: 'checkout.complete', version: '1.0' },
-      ],
-      links: [
-        { rel: 'catalog', href: '/ucp/products' },
-        { rel: 'checkout', href: '/ucp/checkout-sessions' },
-      ],
+      ucp: {
+        version: '2026-01-23',
+        services: {
+          'dev.ucp.shopping': [{
+            version: '2026-01-23',
+            spec: 'https://ucp.dev/latest/specification/checkout/',
+            endpoint: '/checkout-sessions',
+            schema: 'https://ucp.dev/2026-01-23/schemas/shopping/checkout.json',
+            transport: 'rest',
+          }],
+        },
+        capabilities: {
+          'dev.ucp.shopping.checkout': [{ version: '2026-01-23' }],
+        },
+        payment_handlers: {},
+      },
       signing_keys: [],
     };
   }
@@ -111,7 +113,7 @@ export class MagentoAdapter implements PlatformAdapter {
     return mapMagentoCartItems(cartId, allItems);
   }
 
-  async calculateTotals(cartId: string, ctx: CheckoutContext): Promise<Totals> {
+  async calculateTotals(cartId: string, ctx: CheckoutContext): Promise<readonly Total[]> {
     const shippingAddress = buildMagentoShippingAddress(ctx.shipping_address);
     const billingAddress = ctx.billing_address
       ? buildMagentoShippingAddress(ctx.billing_address)

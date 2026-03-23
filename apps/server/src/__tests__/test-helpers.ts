@@ -94,7 +94,7 @@ export async function buildTestApp(): Promise<{
     const host = request.hostname;
     if (!host || host !== TEST_DOMAIN) {
       void reply.status(404).send({
-        error: { code: 'UNKNOWN_STORE', message: `No store configured for domain: ${host}` },
+        messages: [{ type: 'error', code: 'UNKNOWN_STORE', content: `No store configured for domain: ${host}`, severity: 'recoverable' }],
       });
       return;
     }
@@ -119,7 +119,7 @@ export async function buildTestApp(): Promise<{
     const agentHeader = request.headers['ucp-agent'];
     if (!agentHeader || typeof agentHeader !== 'string' || agentHeader.trim().length === 0) {
       void reply.status(401).send({
-        error: { code: 'INVALID_AGENT', message: 'Missing or invalid UCP-Agent header', http_status: 401 },
+        messages: [{ type: 'error', code: 'INVALID_AGENT', content: 'Missing or invalid UCP-Agent header', severity: 'recoverable' }],
       });
       return;
     }

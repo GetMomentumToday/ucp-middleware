@@ -104,8 +104,8 @@ describeLive('Live: UCP Middleware → Magento', () => {
 
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body) as Record<string, unknown>;
-    expect(body['ucp']).toBe('2026-01-11');
-    expect(body['name']).toContain('Magento');
+    const ucp = body['ucp'] as Record<string, unknown>;
+    expect(ucp['version']).toBe('2026-01-23');
   });
 
   it('GET /ucp/products?q=shoes returns real Magento products', async () => {
@@ -148,7 +148,7 @@ describeLive('Live: UCP Middleware → Magento', () => {
   it('creates checkout session and sets address', async () => {
     const createRes = await app.inject({
       method: 'POST',
-      url: '/ucp/checkout-sessions',
+      url: '/checkout-sessions',
       headers: { ...AGENT_HEADER, 'content-type': 'application/json' },
       body: JSON.stringify({}),
     });
@@ -158,14 +158,17 @@ describeLive('Live: UCP Middleware → Magento', () => {
     expect(session.status).toBe('incomplete');
 
     const patchRes = await app.inject({
-      method: 'PATCH',
-      url: `/ucp/checkout-sessions/${session.id}`,
+      method: 'PUT',
+      url: `/checkout-sessions/${session.id}`,
       headers: { ...AGENT_HEADER, 'content-type': 'application/json' },
       body: JSON.stringify({
-        shipping_address: {
-          first_name: 'Test', last_name: 'User',
-          line1: '456 Oak Ave', city: 'Denver',
-          postal_code: '80202', region: 'CO', country_iso2: 'US',
+        id: session.id,
+        buyer: {
+          shipping_address: {
+            first_name: 'Test', last_name: 'User',
+            street_address: '456 Oak Ave', address_locality: 'Denver',
+            postal_code: '80202', address_region: 'CO', address_country: 'US',
+          },
         },
       }),
     });

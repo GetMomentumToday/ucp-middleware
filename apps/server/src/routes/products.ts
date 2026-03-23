@@ -23,10 +23,12 @@ export async function productRoutes(app: FastifyInstance): Promise<void> {
     const parsed = searchQuerySchema.safeParse(request.query);
     if (!parsed.success) {
       return reply.status(400).send({
-        error: {
+        messages: [{
+          type: 'error',
           code: 'VALIDATION_ERROR',
-          message: parsed.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join('; '),
-        },
+          content: parsed.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join('; '),
+          severity: 'recoverable',
+        }],
       });
     }
 
@@ -58,7 +60,7 @@ export async function productRoutes(app: FastifyInstance): Promise<void> {
       } catch (err) {
         if (err instanceof AdapterError && err.code === 'PRODUCT_NOT_FOUND') {
           return reply.status(404).send({
-            error: { code: 'PRODUCT_NOT_FOUND', message: err.message },
+            messages: [{ type: 'error', code: 'PRODUCT_NOT_FOUND', content: err.message, severity: 'recoverable' }],
           });
         }
         throw err;

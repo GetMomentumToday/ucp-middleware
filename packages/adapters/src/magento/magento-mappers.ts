@@ -1,4 +1,4 @@
-import type { Product, Cart, LineItem, Totals, Order, Address } from '@ucp-middleware/core';
+import type { Product, Cart, LineItem, Total, Order, PostalAddress } from '@ucp-middleware/core';
 import type { MagentoProduct, MagentoCartItem, MagentoTotals } from './magento-types.js';
 import { dollarsToCents } from '../shared/price.js';
 
@@ -46,14 +46,13 @@ export function mapMagentoCartItems(cartId: string, items: readonly MagentoCartI
   };
 }
 
-export function mapMagentoTotals(totals: MagentoTotals): Totals {
-  return {
-    subtotal_cents: dollarsToCents(totals.subtotal),
-    shipping_cents: dollarsToCents(totals.shipping_amount),
-    tax_cents: dollarsToCents(totals.tax_amount),
-    total_cents: dollarsToCents(totals.grand_total),
-    currency: totals.base_currency_code,
-  };
+export function mapMagentoTotals(totals: MagentoTotals): readonly Total[] {
+  return [
+    { type: 'subtotal', amount: dollarsToCents(totals.subtotal) },
+    { type: 'fulfillment', amount: dollarsToCents(totals.shipping_amount), display_text: 'Shipping' },
+    { type: 'tax', amount: dollarsToCents(totals.tax_amount) },
+    { type: 'total', amount: dollarsToCents(totals.grand_total) },
+  ];
 }
 
 export function mapMagentoOrder(orderId: string, total: number, currency: string): Order {
@@ -66,15 +65,15 @@ export function mapMagentoOrder(orderId: string, total: number, currency: string
   };
 }
 
-export function buildMagentoShippingAddress(address: Address): Record<string, unknown> {
+export function buildMagentoShippingAddress(address: PostalAddress): Record<string, unknown> {
   return {
     firstname: address.first_name,
     lastname: address.last_name,
-    street: [address.line1, address.line2].filter(Boolean),
-    city: address.city,
+    street: [address.street_address, address.extended_address].filter(Boolean),
+    city: address.address_locality,
     postcode: address.postal_code,
-    region_code: address.region ?? '',
-    country_id: address.country_iso2,
-    telephone: '0000000000',
+    region_code: address.address_region ?? '',
+    country_id: address.address_country,
+    telephone: address.phone_number ?? '0000000000',
   };
 }

@@ -11,7 +11,7 @@ export function sendSessionError(
   httpStatus: number,
 ): FastifyReply {
   return reply.status(httpStatus).send({
-    error: { code, message, http_status: httpStatus },
+    messages: [{ type: 'error', code, content: message, severity: 'recoverable' }],
   });
 }
 
@@ -24,7 +24,7 @@ export function isSessionOwnedByTenant(session: CheckoutSession, tenant: Tenant)
 }
 
 export function hasSessionAlreadyCompleted(session: CheckoutSession): boolean {
-  return session.status === 'completed' && session.order_id !== null;
+  return session.status === 'completed' && session.order !== null;
 }
 
 export async function findExistingSessionByIdempotencyKey(

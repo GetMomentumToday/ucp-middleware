@@ -1,15 +1,10 @@
-/**
- * In-memory SessionStore for tests — no Redis required.
- */
-
 import crypto from 'node:crypto';
 import type { CheckoutSession, UpdateSessionData } from '@ucp-middleware/core';
 
-const DEFAULT_TTL_SECONDS = 1800;
+const DEFAULT_TTL_SECONDS = 21600;
 
 export class MockSessionStore {
   private readonly sessions = new Map<string, CheckoutSession>();
-  private readonly idempotencyKeys = new Map<string, string>();
 
   async create(tenantId: string, ttlSeconds = DEFAULT_TTL_SECONDS): Promise<CheckoutSession> {
     const id = crypto.randomUUID();
@@ -21,14 +16,20 @@ export class MockSessionStore {
       tenant_id: tenantId,
       cart_id: null,
       status: 'incomplete',
+      line_items: [],
+      currency: 'USD',
+      totals: [],
+      links: [],
+      buyer: null,
       shipping_address: null,
       billing_address: null,
-      totals: null,
-      order_id: null,
-      idempotency_key: null,
+      order: null,
+      continue_url: null,
+      messages: [],
       escalation: null,
-      created_at: now.toISOString(),
+      idempotency_key: null,
       expires_at: expiresAt.toISOString(),
+      created_at: now.toISOString(),
     };
 
     this.sessions.set(id, session);
@@ -57,14 +58,5 @@ export class MockSessionStore {
 
   async delete(id: string): Promise<boolean> {
     return this.sessions.delete(id);
-  }
-
-  // Helpers for idempotency testing
-  setIdempotencyKey(key: string, sessionId: string): void {
-    this.idempotencyKeys.set(key, sessionId);
-  }
-
-  getIdempotencyKey(key: string): string | undefined {
-    return this.idempotencyKeys.get(key);
   }
 }

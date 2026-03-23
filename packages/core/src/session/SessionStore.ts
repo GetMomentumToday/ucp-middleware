@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import type { Redis as RedisType } from 'ioredis';
-import type { Address, Totals } from '../types/commerce.js';
+import type { PostalAddress, Total, CheckoutLink, OrderConfirmation, Buyer, UCPMessage } from '../types/commerce.js';
 import type { EscalationDetails } from '../types/errors.js';
 
 export type SessionStatus =
@@ -11,19 +11,30 @@ export type SessionStatus =
   | 'expired'
   | 'requires_escalation';
 
+export interface CheckoutSessionLineItem {
+  readonly item: { readonly id: string; readonly title?: string | undefined; readonly price?: number | undefined };
+  readonly quantity: number;
+}
+
 export interface CheckoutSession {
   readonly id: string;
   readonly tenant_id: string;
   readonly cart_id: string | null;
   readonly status: SessionStatus;
-  readonly shipping_address: Address | null;
-  readonly billing_address: Address | null;
-  readonly totals: Totals | null;
-  readonly order_id: string | null;
-  readonly idempotency_key: string | null;
+  readonly line_items: readonly CheckoutSessionLineItem[];
+  readonly currency: string;
+  readonly totals: readonly Total[];
+  readonly links: readonly CheckoutLink[];
+  readonly buyer: Buyer | null;
+  readonly shipping_address: PostalAddress | null;
+  readonly billing_address: PostalAddress | null;
+  readonly order: OrderConfirmation | null;
+  readonly continue_url: string | null;
+  readonly messages: readonly UCPMessage[];
   readonly escalation: EscalationDetails | null;
-  readonly created_at: string;
+  readonly idempotency_key: string | null;
   readonly expires_at: string;
+  readonly created_at: string;
 }
 
 /** Fields that may be provided when updating a session. */
@@ -32,7 +43,7 @@ export type UpdateSessionData = Partial<
 >;
 
 const KEY_PREFIX = 'session:';
-const DEFAULT_TTL_SECONDS = 1800;
+const DEFAULT_TTL_SECONDS = 21600;
 
 export class SessionStore {
   private readonly redis: RedisType;
@@ -51,14 +62,20 @@ export class SessionStore {
       tenant_id: tenantId,
       cart_id: null,
       status: 'incomplete',
+      line_items: [],
+      currency: 'USD',
+      totals: [],
+      links: [],
+      buyer: null,
       shipping_address: null,
       billing_address: null,
-      totals: null,
-      order_id: null,
-      idempotency_key: null,
+      order: null,
+      continue_url: null,
+      messages: [],
       escalation: null,
-      created_at: now.toISOString(),
+      idempotency_key: null,
       expires_at: expiresAt.toISOString(),
+      created_at: now.toISOString(),
     };
 
     await this.redis.setex(buildSessionKey(id), ttlSeconds, JSON.stringify(session));

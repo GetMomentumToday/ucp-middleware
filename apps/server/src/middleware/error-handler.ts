@@ -3,15 +3,16 @@ import fp from 'fastify-plugin';
 import { AdapterError } from '@ucp-middleware/core';
 
 interface ErrorBody {
-  readonly error: {
+  readonly messages: readonly {
+    readonly type: 'error';
     readonly code: string;
-    readonly message: string;
-    readonly http_status: number;
-  };
+    readonly content: string;
+    readonly severity: 'recoverable';
+  }[];
 }
 
-function buildErrorBody(code: string, message: string, httpStatus: number): ErrorBody {
-  return { error: { code, message, http_status: httpStatus } };
+function buildErrorBody(code: string, message: string, _httpStatus: number): ErrorBody {
+  return { messages: [{ type: 'error', code, content: message, severity: 'recoverable' }] };
 }
 
 function isFastifyValidationError(error: unknown): error is FastifyError & { validation: unknown } {

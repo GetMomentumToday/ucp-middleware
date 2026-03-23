@@ -6,7 +6,7 @@ import type {
   Cart,
   LineItem,
   CheckoutContext,
-  Totals,
+  Total,
   PaymentToken,
   Order,
 } from '@ucp-middleware/core';
@@ -102,7 +102,7 @@ export class MockAdapter implements PlatformAdapter {
     return updatedCart;
   }
 
-  async calculateTotals(cartId: string, _ctx: CheckoutContext): Promise<Totals> {
+  async calculateTotals(cartId: string, _ctx: CheckoutContext): Promise<readonly Total[]> {
     const cart = this.carts.get(cartId);
     if (!cart) {
       throw notFound('CART_NOT_FOUND', cartId);
@@ -113,7 +113,12 @@ export class MockAdapter implements PlatformAdapter {
     const taxCents = Math.round(subtotalCents * TAX_RATE);
     const totalCents = subtotalCents + shippingCents + taxCents;
 
-    return { subtotal_cents: subtotalCents, shipping_cents: shippingCents, tax_cents: taxCents, total_cents: totalCents, currency: cart.currency };
+    return [
+      { type: 'subtotal', amount: subtotalCents },
+      { type: 'fulfillment', amount: shippingCents, display_text: 'Shipping' },
+      { type: 'tax', amount: taxCents },
+      { type: 'total', amount: totalCents },
+    ];
   }
 
   async placeOrder(cartId: string, payment: PaymentToken): Promise<Order> {

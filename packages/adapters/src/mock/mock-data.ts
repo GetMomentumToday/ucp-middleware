@@ -1,19 +1,22 @@
 import type { Product, UCPProfile } from '@ucp-middleware/core';
 
 export const MOCK_PROFILE: UCPProfile = {
-  ucp: '2026-01-11',
-  name: 'Mock Store',
-  capabilities: [
-    { name: 'catalog.search', version: '1.0' },
-    { name: 'catalog.product', version: '1.0' },
-    { name: 'cart.manage', version: '1.0' },
-    { name: 'checkout.complete', version: '1.0' },
-    { name: 'order.read', version: '1.0' },
-  ],
-  links: [
-    { rel: 'catalog', href: '/ucp/products' },
-    { rel: 'checkout', href: '/ucp/checkout-sessions' },
-  ],
+  ucp: {
+    version: '2026-01-23',
+    services: {
+      'dev.ucp.shopping': [{
+        version: '2026-01-23',
+        spec: 'https://ucp.dev/latest/specification/checkout/',
+        endpoint: '/checkout-sessions',
+        schema: 'https://ucp.dev/2026-01-23/schemas/shopping/checkout.json',
+        transport: 'rest',
+      }],
+    },
+    capabilities: {
+      'dev.ucp.shopping.checkout': [{ version: '2026-01-23' }],
+    },
+    payment_handlers: {},
+  },
   signing_keys: [],
 };
 
