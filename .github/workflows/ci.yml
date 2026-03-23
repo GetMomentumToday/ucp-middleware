@@ -77,6 +77,17 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: UCP spec compliance check
+        run: |
+          npm run build
+          DATABASE_URL=postgresql://ucp:ucp@localhost:5432/ucp \
+          REDIS_URL=redis://localhost:6379 \
+          SECRET_KEY=ci_test_secret_key_at_least_32_characters \
+          node apps/server/dist/index.js &
+          sleep 3
+          npm run validate:ucp
+          kill %1 || true
+
       - name: Upload coverage
         if: always()
         uses: actions/upload-artifact@v4
