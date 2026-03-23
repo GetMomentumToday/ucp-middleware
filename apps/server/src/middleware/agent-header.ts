@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import fp from 'fastify-plugin';
 
 const SKIP_PATHS = new Set(['/health', '/ready']);
 
@@ -14,7 +15,7 @@ function isValidAgentHeader(value: unknown): boolean {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
-export async function agentHeaderPlugin(app: FastifyInstance): Promise<void> {
+export const agentHeaderPlugin = fp(async function agentHeader(app: FastifyInstance): Promise<void> {
   app.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
     const path = getUrlPath(request.url);
     if (isPublicEndpoint(path)) return;
@@ -30,4 +31,4 @@ export async function agentHeaderPlugin(app: FastifyInstance): Promise<void> {
       return;
     }
   });
-}
+});

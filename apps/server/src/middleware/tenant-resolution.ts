@@ -1,7 +1,9 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import fp from 'fastify-plugin';
 import type { AwilixContainer } from 'awilix';
 import type { Cradle } from '../container/index.js';
 import type { Tenant, PlatformAdapter } from '@ucp-middleware/core';
+import { createAdapterForTenant } from './adapter-factory.js';
 
 const CACHE_TTL_SECONDS = 300;
 const CACHE_PREFIX = 'tenant:domain:';
@@ -25,7 +27,7 @@ function buildTenantCacheKey(host: string): string {
   return `${CACHE_PREFIX}${host}`;
 }
 
-export async function tenantResolutionPlugin(app: FastifyInstance): Promise<void> {
+export const tenantResolutionPlugin = fp(async function tenantResolution(app: FastifyInstance): Promise<void> {
   app.decorateRequest('tenant', null);
   app.decorateRequest('adapter', null);
 
@@ -35,7 +37,6 @@ export async function tenantResolutionPlugin(app: FastifyInstance): Promise<void
     const container = app.container;
     const redis = container.resolve('redis');
     const tenantRepository = container.resolve('tenantRepository');
-    const adapterRegistry = container.resolve('adapterRegistry');
 
     const host = request.hostname;
     if (!host) {
@@ -52,16 +53,10 @@ export async function tenantResolutionPlugin(app: FastifyInstance): Promise<void
       });
     }
 
-    if (!adapterRegistry.has(tenant.platform)) {
-      return reply.status(500).send({
-        error: { code: 'PLATFORM_ERROR', message: `No adapter for platform: ${tenant.platform}` },
-      });
-    }
-
     request.tenant = tenant;
-    request.adapter = adapterRegistry.get(tenant.platform);
+    request.adapter = createAdapterForTenant(tenant.platform, tenant.adapterConfig);
   });
-}
+});
 
 async function resolveTenantByHost(
   redis: { get(key: string): Promise<string | null>; setex(key: string, ttl: number, value: string): Promise<unknown> },

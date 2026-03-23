@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyError, FastifyRequest, FastifyReply } from 'fastify';
+import fp from 'fastify-plugin';
 import { AdapterError } from '@ucp-middleware/core';
 
 interface ErrorBody {
@@ -21,7 +22,7 @@ function isFastifyHttpError(error: unknown): error is FastifyError & { statusCod
   return typeof error === 'object' && error !== null && 'statusCode' in error && typeof (error as Record<string, unknown>)['statusCode'] === 'number';
 }
 
-export async function errorHandlerPlugin(app: FastifyInstance): Promise<void> {
+export const errorHandlerPlugin = fp(async function errorHandler(app: FastifyInstance): Promise<void> {
   app.setErrorHandler(
     (error: FastifyError | AdapterError | Error, _request: FastifyRequest, reply: FastifyReply) => {
       if (error instanceof AdapterError) {
@@ -43,4 +44,4 @@ export async function errorHandlerPlugin(app: FastifyInstance): Promise<void> {
       return reply.status(500).send(buildErrorBody('INTERNAL_ERROR', 'An unexpected error occurred', 500));
     },
   );
-}
+});

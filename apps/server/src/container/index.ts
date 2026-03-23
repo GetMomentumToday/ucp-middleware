@@ -31,7 +31,7 @@ export function createAppContainer(env: Env): AwilixContainer<Cradle> {
   });
 
   const db = createDb({ connectionString: env.DATABASE_URL });
-  const redis = new Redis.default(env.REDIS_URL, { lazyConnect: true });
+  const redis = new Redis.default(env.REDIS_URL);
 
   const adapterRegistry = new AdapterRegistry();
   adapterRegistry.register('mock', new MockAdapter());
