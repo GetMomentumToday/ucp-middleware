@@ -247,7 +247,10 @@ export async function checkoutRoutes(app: FastifyInstance): Promise<void> {
 
         const completed = await sessionStore.update(request.params.id, {
           status: 'completed',
-          order: { id: placedOrder.id, permalink_url: '' },
+          order: {
+            id: placedOrder.id,
+            permalink_url: `https://${request.tenant.domain}/orders/${placedOrder.id}`,
+          },
         });
 
         return sendPublic(reply, 200, completed ?? session);
