@@ -247,7 +247,7 @@ describe('E2E Checkout: MockAdapter full flow', () => {
     expect(body.messages[0]!.code).toBe('missing');
   });
 
-  it('returns 400 when completing session without fulfillment', async () => {
+  it('returns 409 when completing session in incomplete state', async () => {
     const createRes = await app.inject({
       method: 'POST',
       url: '/checkout-sessions',
@@ -274,8 +274,8 @@ describe('E2E Checkout: MockAdapter full flow', () => {
         },
       }),
     });
-    expect(res.statusCode).toBe(400);
+    expect(res.statusCode).toBe(409);
     const body = JSON.parse(res.body) as { messages: { code: string }[] };
-    expect(body.messages[0]!.code).toBe('fulfillment_required');
+    expect(body.messages[0]!.code).toBe('INVALID_SESSION_STATE');
   });
 });
