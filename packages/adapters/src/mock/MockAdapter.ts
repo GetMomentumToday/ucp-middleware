@@ -10,7 +10,7 @@ import type {
   PaymentToken,
   Order,
 } from '@ucp-gateway/core';
-import { notFound, outOfStock } from '@ucp-gateway/core';
+import { AdapterError, notFound, outOfStock } from '@ucp-gateway/core';
 import { MOCK_PRODUCTS, MOCK_PROFILE } from './mock-data.js';
 
 const MAX_STOCK_QUANTITY = 10;
@@ -130,6 +130,10 @@ export class MockAdapter implements PlatformAdapter {
   async placeOrder(cartId: string, payment: PaymentToken): Promise<Order> {
     if (!payment.token) {
       throw new Error('Payment token is required');
+    }
+
+    if (payment.token === 'fail_token') {
+      throw new AdapterError('INVALID_PAYMENT', 'Payment processing failed', 402);
     }
 
     const cart = this.carts.get(cartId);

@@ -18,7 +18,7 @@ import {
   checkIdempotencyKey,
   storeIdempotencyRecord,
 } from './checkout-helpers.js';
-import { toPublicCheckoutResponse } from './checkout-response.js';
+import { toPublicCheckoutResponse, type TenantLinkSettings } from './checkout-response.js';
 import {
   buildFulfillmentForCreate,
   buildFulfillmentForUpdate,
@@ -160,13 +160,24 @@ const completeSessionSchema = z
     message: 'Either payment.instruments or payment_data must be provided',
   });
 
+function getTenantLinkSettings(request: FastifyRequest): TenantLinkSettings | undefined {
+  const settings = request.tenant?.settings;
+  if (settings && typeof settings === 'object') return settings as TenantLinkSettings;
+  return undefined;
+}
+
 function sendValidationError(reply: FastifyReply, error: z.ZodError): FastifyReply {
   const message = error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join('; ');
   return sendSessionError(reply, 'invalid', message, 400);
 }
 
-function sendPublic(reply: FastifyReply, status: number, session: CheckoutSession): FastifyReply {
-  return reply.status(status).send(toPublicCheckoutResponse(session));
+function sendPublic(
+  reply: FastifyReply,
+  status: number,
+  session: CheckoutSession,
+  tenantSettings?: TenantLinkSettings,
+): FastifyReply {
+  return reply.status(status).send(toPublicCheckoutResponse(session, tenantSettings));
 }
 
 /**
@@ -336,7 +347,10 @@ export async function checkoutRoutes(app: FastifyInstance): Promise<void> {
         ? await sessionStore.update(session.id, updateFields)
         : session;
 
-    const responseBody = toPublicCheckoutResponse(result ?? session);
+    const responseBody = toPublicCheckoutResponse(
+      result ?? session,
+      getTenantLinkSettings(request),
+    );
     if (idempotencyKey) {
       const hash = (await checkIdempotencyKey(
         redis,
@@ -522,7 +536,7 @@ export async function checkoutRoutes(app: FastifyInstance): Promise<void> {
       }
 
       const updated = await sessionStore.update(request.params.id, updateData);
-      return sendPublic(reply, 200, updated ?? session);
+      return sendPublic(reply, 200, updated ?? session, getTenantLinkSettings(request));
     },
   );
 
@@ -539,7 +553,8 @@ export async function checkoutRoutes(app: FastifyInstance): Promise<void> {
         return sendSessionError(reply, 'missing', `Session not found: ${request.params.id}`, 404);
       if (isSessionExpired(session))
         return sendSessionError(reply, 'SESSION_EXPIRED', 'Checkout session has expired', 410);
-      if (hasSessionAlreadyCompleted(session)) return sendPublic(reply, 200, session);
+      if (hasSessionAlreadyCompleted(session))
+        return sendPublic(reply, 200, session, getTenantLinkSettings(request));
       if (!isSessionOwnedByTenant(session, request.tenant))
         return sendSessionError(reply, 'missing', `Session not found: ${request.params.id}`, 404);
 
@@ -581,11 +596,9 @@ export async function checkoutRoutes(app: FastifyInstance): Promise<void> {
         credentialRecord?.['token'] ?? credentialRecord?.['type'] ?? selectedInstrument.id,
       );
 
-      if (paymentTokenValue === 'fail_token') {
-        return sendSessionError(reply, 'payment_failed', 'Payment processing failed', 402);
-      }
-
       await sessionStore.update(request.params.id, { status: 'complete_in_progress' });
+
+      const tenantLinks = getTenantLinkSettings(request);
 
       try {
         const paymentToken = {
@@ -602,7 +615,7 @@ export async function checkoutRoutes(app: FastifyInstance): Promise<void> {
           },
         });
 
-        return sendPublic(reply, 200, completed ?? session);
+        return sendPublic(reply, 200, completed ?? session, tenantLinks);
       } catch (err: unknown) {
         if (err instanceof EscalationRequiredError) {
           const escalated = await sessionStore.update(request.params.id, {
@@ -610,7 +623,7 @@ export async function checkoutRoutes(app: FastifyInstance): Promise<void> {
             escalation: err.escalation,
             continue_url: err.escalation.continue_url,
           });
-          return sendPublic(reply, 200, escalated ?? session);
+          return sendPublic(reply, 200, escalated ?? session, tenantLinks);
         }
         throw err;
       }
@@ -634,10 +647,11 @@ export async function checkoutRoutes(app: FastifyInstance): Promise<void> {
           'Cannot cancel a completed session',
           409,
         );
-      if (session.status === 'canceled') return sendPublic(reply, 200, session);
+      const cancelTenantLinks = getTenantLinkSettings(request);
+      if (session.status === 'canceled') return sendPublic(reply, 200, session, cancelTenantLinks);
 
       const canceled = await sessionStore.update(request.params.id, { status: 'canceled' });
-      return sendPublic(reply, 200, canceled ?? session);
+      return sendPublic(reply, 200, canceled ?? session, cancelTenantLinks);
     },
   );
 
@@ -652,7 +666,7 @@ export async function checkoutRoutes(app: FastifyInstance): Promise<void> {
       if (!isSessionOwnedByTenant(session, request.tenant))
         return sendSessionError(reply, 'missing', `Session not found: ${request.params.id}`, 404);
 
-      return sendPublic(reply, 200, session);
+      return sendPublic(reply, 200, session, getTenantLinkSettings(request));
     },
   );
 

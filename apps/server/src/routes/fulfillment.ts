@@ -8,6 +8,7 @@
  * - Computing fulfillment costs (including free-shipping rules)
  */
 
+import { createHash } from 'node:crypto';
 import type {
   Fulfillment,
   FulfillmentMethod,
@@ -29,15 +30,20 @@ import {
 } from '@ucp-gateway/adapters';
 
 /* ---------------------------------------------------------------------------
- * In-memory address store for dynamically-added addresses
- * (keyed by email so new users' addresses persist across sessions)
+ * Deterministic address ID generation from address content.
+ * No mutable state — IDs are derived from a hash of the address fields.
  * ------------------------------------------------------------------------- */
 
-const dynamicAddresses = new Map<string, FulfillmentDestination[]>();
-let dynamicIdCounter = 1;
-
-function generateAddressId(): string {
-  return `addr_dyn_${String(dynamicIdCounter++)}`;
+function generateAddressId(dest: FulfillmentDestination): string {
+  const key = JSON.stringify({
+    street_address: dest.street_address ?? '',
+    postal_code: dest.postal_code ?? '',
+    address_country: dest.address_country ?? '',
+    address_locality: dest.address_locality ?? '',
+    address_region: dest.address_region ?? '',
+  });
+  const hash = createHash('sha256').update(key).digest('hex').slice(0, 12);
+  return `addr_${hash}`;
 }
 
 /* ---------------------------------------------------------------------------
@@ -52,11 +58,9 @@ function findCustomerByEmail(email: string | undefined): string | undefined {
 
 function getStoredAddresses(email: string | undefined): readonly FulfillmentDestination[] {
   const customerId = findCustomerByEmail(email);
-  const csvAddresses: readonly FulfillmentDestination[] = customerId
+  return customerId
     ? MOCK_ADDRESSES.filter((a) => a.customer_id === customerId).map(toFulfillmentDestination)
     : [];
-  const dynamic = email ? (dynamicAddresses.get(email.toLowerCase()) ?? []) : [];
-  return [...csvAddresses, ...dynamic];
 }
 
 /**
@@ -95,13 +99,8 @@ function resolveDestinations(
     const matched = matchExistingAddress(dest, stored);
     if (matched) return matched;
 
-    // New address — assign ID and persist
-    const newDest: FulfillmentDestination = { ...dest, id: generateAddressId() };
-    if (email) {
-      const key = email.toLowerCase();
-      const existing = dynamicAddresses.get(key) ?? [];
-      dynamicAddresses.set(key, [...existing, newDest]);
-    }
+    // New address — assign deterministic ID from content hash
+    const newDest: FulfillmentDestination = { ...dest, id: generateAddressId(dest) };
     return newDest;
   });
 }
