@@ -81,62 +81,63 @@
 
 #### Business Profile (at `/.well-known/ucp`)
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `ucp.version` | string | Yes | YYYY-MM-DD format |
-| `ucp.services` | object | Yes | Service definitions indexed by reverse-domain name |
-| `ucp.capabilities` | object | No | Capability definitions indexed by reverse-domain name |
-| `ucp.payment_handlers` | object | Yes | Payment handler definitions |
-| `signing_keys` | array | No | JWK format public keys for webhook verification |
+| Field                  | Type   | Required | Description                                           |
+| ---------------------- | ------ | -------- | ----------------------------------------------------- |
+| `ucp.version`          | string | Yes      | YYYY-MM-DD format                                     |
+| `ucp.services`         | object | Yes      | Service definitions indexed by reverse-domain name    |
+| `ucp.capabilities`     | object | No       | Capability definitions indexed by reverse-domain name |
+| `ucp.payment_handlers` | object | Yes      | Payment handler definitions                           |
+| `signing_keys`         | array  | No       | JWK format public keys for webhook verification       |
 
 #### Service Definition
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `version` | string | Yes | YYYY-MM-DD format |
-| `spec` | string | Yes | Service documentation URL |
-| `rest.schema` | string | Yes (if REST) | OpenAPI spec URL (JSON) |
-| `rest.endpoint` | string | Yes (if REST) | Business's REST endpoint |
-| `mcp.schema` | string | Yes (if MCP) | OpenRPC spec URL (JSON) |
-| `mcp.endpoint` | string | Yes (if MCP) | Business's MCP endpoint |
-| `a2a.endpoint` | string | Yes (if A2A) | Business's Agent Card URL |
-| `embedded.schema` | string | Yes (if embedded) | OpenRPC spec URL (JSON) |
+| Field             | Type   | Required          | Description               |
+| ----------------- | ------ | ----------------- | ------------------------- |
+| `version`         | string | Yes               | YYYY-MM-DD format         |
+| `spec`            | string | Yes               | Service documentation URL |
+| `rest.schema`     | string | Yes (if REST)     | OpenAPI spec URL (JSON)   |
+| `rest.endpoint`   | string | Yes (if REST)     | Business's REST endpoint  |
+| `mcp.schema`      | string | Yes (if MCP)      | OpenRPC spec URL (JSON)   |
+| `mcp.endpoint`    | string | Yes (if MCP)      | Business's MCP endpoint   |
+| `a2a.endpoint`    | string | Yes (if A2A)      | Business's Agent Card URL |
+| `embedded.schema` | string | Yes (if embedded) | OpenRPC spec URL (JSON)   |
 
 #### Capability Definition
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `version` | string | No | YYYY-MM-DD format |
-| `spec` | string | Yes | Human-readable spec document URL |
-| `schema` | string | Yes | JSON Schema URL defining structure |
-| `id` | string | No | Unique identifier for instance |
-| `config` | object | No | Entity-specific configuration |
-| `extends` | string | No | Parent capability identifier |
+| Field     | Type   | Required | Description                        |
+| --------- | ------ | -------- | ---------------------------------- |
+| `version` | string | No       | YYYY-MM-DD format                  |
+| `spec`    | string | Yes      | Human-readable spec document URL   |
+| `schema`  | string | Yes      | JSON Schema URL defining structure |
+| `id`      | string | No       | Unique identifier for instance     |
+| `config`  | object | No       | Entity-specific configuration      |
+| `extends` | string | No       | Parent capability identifier       |
 
 #### Signing Key (JWK)
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `kid` | string | Key ID |
-| `kty` | string | Key type (EC) |
-| `crv` | string | Curve (P-256) |
-| `x`, `y` | string | Coordinates |
-| `use` | string | Usage (sig) |
-| `alg` | string | Algorithm (ES256) |
+| Field    | Type   | Description       |
+| -------- | ------ | ----------------- |
+| `kid`    | string | Key ID            |
+| `kty`    | string | Key type (EC)     |
+| `crv`    | string | Curve (P-256)     |
+| `x`, `y` | string | Coordinates       |
+| `use`    | string | Usage (sig)       |
+| `alg`    | string | Algorithm (ES256) |
 
 ### 1.5 Namespace Governance
 
-| Namespace Pattern | Authority | Governance |
-|---|---|---|
-| `dev.ucp.*` | ucp.dev | UCP governing body |
-| `com.{vendor}.*` | {vendor}.com | Vendor organization |
-| `org.{org}.*` | {org}.org | Organization |
+| Namespace Pattern | Authority    | Governance          |
+| ----------------- | ------------ | ------------------- |
+| `dev.ucp.*`       | ucp.dev      | UCP governing body  |
+| `com.{vendor}.*`  | {vendor}.com | Vendor organization |
+| `org.{org}.*`     | {org}.org    | Organization        |
 
 ### 1.6 Naming Convention
 
 All capability and service names follow: `[reverse-domain].{service}.{capability}`
 
 Examples:
+
 - `dev.ucp.shopping.checkout`
 - `dev.ucp.shopping.fulfillment`
 - `dev.ucp.common.identity_linking`
@@ -147,18 +148,21 @@ Examples:
 ```json
 {
   "status": "requires_escalation",
-  "messages": [{
-    "type": "error",
-    "code": "version_unsupported",
-    "message": "Version 2026-01-24 not supported. Business implements 2026-01-23.",
-    "severity": "requires_buyer_input"
-  }]
+  "messages": [
+    {
+      "type": "error",
+      "code": "version_unsupported",
+      "message": "Version 2026-01-24 not supported. Business implements 2026-01-23.",
+      "severity": "requires_buyer_input"
+    }
+  ]
 }
 ```
 
 ### 1.8 Backwards Compatibility Rules
 
 **Backwards-Compatible (allowed without version bump):**
+
 - Adding new non-required fields to responses
 - Adding new non-required parameters to requests
 - Adding new endpoints, methods, operations
@@ -168,6 +172,7 @@ Examples:
 - Changing opaque string length/format (IDs, tokens)
 
 **Breaking (MUST NOT without new version):**
+
 - Removing/renaming existing fields
 - Changing field types/semantics
 - Making non-required fields required
@@ -185,11 +190,13 @@ Examples:
 ### 1.10 UCP-Agent Header
 
 **HTTP (RFC 8941):**
+
 ```
 UCP-Agent: profile="https://agent.example/profiles/shopping-agent.json"
 ```
 
 **MCP meta object:**
+
 ```json
 {
   "meta": {
@@ -203,21 +210,21 @@ UCP-Agent: profile="https://agent.example/profiles/shopping-agent.json"
 
 ### 1.11 Glossary
 
-| Term | Acronym | Definition |
-|------|---------|-----------|
-| Agent Payments Protocol | AP2 | Open protocol enabling AI agents to securely interoperate and complete payments autonomously |
-| Agent2Agent Protocol | A2A | Open standard for secure, collaborative communication between diverse AI agents |
-| Capability | -- | Standalone core feature a business supports |
-| Credential Provider | CP | Trusted entity managing user's payment/identity credentials |
-| Extension | -- | Optional capability augmenting another via `extends` field |
-| Profile | -- | JSON document at well-known URI declaring identity, capabilities, endpoints |
-| Business | -- | Entity selling goods/services; Merchant of Record (MoR) |
-| Model Context Protocol | MCP | Protocol standardizing AI model connection to external data and tools |
-| Universal Commerce Protocol | UCP | Standard enabling interoperability via standardized capabilities and discovery |
-| Payment Service Provider | PSP | Financial infrastructure provider processing payments |
-| Platform | -- | Consumer-facing surface acting on user's behalf |
-| Verifiable Digital Credential | VDC | Issuer-signed credential verifiable cryptographically |
-| Verifiable Presentation | VP | Presentation of one or more VDCs with cryptographic proof |
+| Term                          | Acronym | Definition                                                                                   |
+| ----------------------------- | ------- | -------------------------------------------------------------------------------------------- |
+| Agent Payments Protocol       | AP2     | Open protocol enabling AI agents to securely interoperate and complete payments autonomously |
+| Agent2Agent Protocol          | A2A     | Open standard for secure, collaborative communication between diverse AI agents              |
+| Capability                    | --      | Standalone core feature a business supports                                                  |
+| Credential Provider           | CP      | Trusted entity managing user's payment/identity credentials                                  |
+| Extension                     | --      | Optional capability augmenting another via `extends` field                                   |
+| Profile                       | --      | JSON document at well-known URI declaring identity, capabilities, endpoints                  |
+| Business                      | --      | Entity selling goods/services; Merchant of Record (MoR)                                      |
+| Model Context Protocol        | MCP     | Protocol standardizing AI model connection to external data and tools                        |
+| Universal Commerce Protocol   | UCP     | Standard enabling interoperability via standardized capabilities and discovery               |
+| Payment Service Provider      | PSP     | Financial infrastructure provider processing payments                                        |
+| Platform                      | --      | Consumer-facing surface acting on user's behalf                                              |
+| Verifiable Digital Credential | VDC     | Issuer-signed credential verifiable cryptographically                                        |
+| Verifiable Presentation       | VP      | Presentation of one or more VDCs with cryptographic proof                                    |
 
 ---
 
@@ -265,22 +272,24 @@ UCP-Agent: profile="https://agent.example/profiles/shopping-agent.json"
 ### 2.4 Checkout Status Lifecycle
 
 **Non-Terminal States:**
+
 - `incomplete` -- Session missing required info; inspect `messages` array
 - `requires_escalation` -- Cannot be resolved via API; buyer input needed
 - `ready_for_complete` -- All info present; platform can call Complete
 - `complete_in_progress` -- Business is processing Complete request
 
 **Terminal States:**
+
 - `completed` -- Order placed successfully
 - `canceled` -- Session invalid/expired
 
 ### 2.5 Error Severity Types
 
-| Severity | Meaning | Platform Action |
-|----------|---------|-----------------|
-| `recoverable` | Platform can fix via API | Resolve using Update Checkout |
-| `requires_buyer_input` | Business requires input not available via API | Hand off via `continue_url` |
-| `requires_buyer_review` | Buyer review and authorization required | Hand off via `continue_url` |
+| Severity                | Meaning                                       | Platform Action               |
+| ----------------------- | --------------------------------------------- | ----------------------------- |
+| `recoverable`           | Platform can fix via API                      | Resolve using Update Checkout |
+| `requires_buyer_input`  | Business requires input not available via API | Hand off via `continue_url`   |
+| `requires_buyer_review` | Buyer review and authorization required       | Hand off via `continue_url`   |
 
 ### 2.6 Error Codes (Checkout)
 
@@ -298,84 +307,84 @@ UCP-Agent: profile="https://agent.example/profiles/shopping-agent.json"
 
 ### 2.7 Core Operations
 
-| Operation | Purpose |
-|-----------|---------|
-| Create Checkout | Initiate checkout session with item details |
-| Get Checkout | Retrieve latest state of checkout resource |
-| Update Checkout | Full replacement of checkout resource |
-| Complete Checkout | Final order placement call |
-| Cancel Checkout | Cancel a checkout session |
+| Operation         | Purpose                                     |
+| ----------------- | ------------------------------------------- |
+| Create Checkout   | Initiate checkout session with item details |
+| Get Checkout      | Retrieve latest state of checkout resource  |
+| Update Checkout   | Full replacement of checkout resource       |
+| Complete Checkout | Final order placement call                  |
+| Cancel Checkout   | Cancel a checkout session                   |
 
 ### 2.8 Data Schemas
 
 #### Buyer
 
-| Field | Type | Required |
-|-------|------|----------|
-| `first_name` | string | No |
-| `last_name` | string | No |
-| `email` | string | No |
-| `phone_number` | string (E.164) | No |
+| Field          | Type           | Required |
+| -------------- | -------------- | -------- |
+| `first_name`   | string         | No       |
+| `last_name`    | string         | No       |
+| `email`        | string         | No       |
+| `phone_number` | string (E.164) | No       |
 
 #### Context (Provisional Signals)
 
-| Field | Type | Required |
-|-------|------|----------|
-| `address_country` | string (ISO 3166-1 alpha-2) | No |
-| `address_region` | string | No |
-| `postal_code` | string | No |
+| Field             | Type                        | Required |
+| ----------------- | --------------------------- | -------- |
+| `address_country` | string (ISO 3166-1 alpha-2) | No       |
+| `address_region`  | string                      | No       |
+| `postal_code`     | string                      | No       |
 
 #### Item
 
-| Field | Type | Required | Notes |
-|-------|------|----------|-------|
-| `id` | string | Yes | Must match platform and business recognition |
-| `title` | string | Yes | Response only |
-| `price` | integer | Yes | Minor currency units, response only |
-| `image_url` | string | No | Response only |
+| Field       | Type    | Required | Notes                                        |
+| ----------- | ------- | -------- | -------------------------------------------- |
+| `id`        | string  | Yes      | Must match platform and business recognition |
+| `title`     | string  | Yes      | Response only                                |
+| `price`     | integer | Yes      | Minor currency units, response only          |
+| `image_url` | string  | No       | Response only                                |
 
 #### Line Item
 
-| Field | Type | Required | Notes |
-|-------|------|----------|-------|
-| `id` | string | Yes | Response only |
-| `item` | Item | Yes | |
-| `quantity` | integer | Yes | |
-| `totals` | Array[Total] | Yes | Response only |
-| `parent_id` | string | No | For nested structures |
+| Field       | Type         | Required | Notes                 |
+| ----------- | ------------ | -------- | --------------------- |
+| `id`        | string       | Yes      | Response only         |
+| `item`      | Item         | Yes      |                       |
+| `quantity`  | integer      | Yes      |                       |
+| `totals`    | Array[Total] | Yes      | Response only         |
+| `parent_id` | string       | No       | For nested structures |
 
 #### Postal Address
 
-| Field | Type | Required |
-|-------|------|----------|
-| `extended_address` | string | No |
-| `street_address` | string | No |
-| `address_locality` | string | No |
-| `address_region` | string | No (required for applicable countries) |
-| `address_country` | string (ISO 3166-1 alpha-2 recommended) | No |
-| `postal_code` | string | No |
-| `first_name` | string | No |
-| `last_name` | string | No |
-| `phone_number` | string | No |
+| Field              | Type                                    | Required                               |
+| ------------------ | --------------------------------------- | -------------------------------------- |
+| `extended_address` | string                                  | No                                     |
+| `street_address`   | string                                  | No                                     |
+| `address_locality` | string                                  | No                                     |
+| `address_region`   | string                                  | No (required for applicable countries) |
+| `address_country`  | string (ISO 3166-1 alpha-2 recommended) | No                                     |
+| `postal_code`      | string                                  | No                                     |
+| `first_name`       | string                                  | No                                     |
+| `last_name`        | string                                  | No                                     |
+| `phone_number`     | string                                  | No                                     |
 
 #### Total
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `type` | string | Yes | Enum: `items_discount`, `subtotal`, `discount`, `fulfillment`, `tax`, `fee`, `total` |
-| `display_text` | string | No | Text to display |
-| `amount` | integer | Yes | Minor currency units; if type=="total", >= 0 |
+| Field          | Type    | Required | Description                                                                          |
+| -------------- | ------- | -------- | ------------------------------------------------------------------------------------ |
+| `type`         | string  | Yes      | Enum: `items_discount`, `subtotal`, `discount`, `fulfillment`, `tax`, `fee`, `total` |
+| `display_text` | string  | No       | Text to display                                                                      |
+| `amount`       | integer | Yes      | Minor currency units; if type=="total", >= 0                                         |
 
 #### Payment Instrument
 
-| Field | Type | Required |
-|-------|------|----------|
-| `id` | string | Yes |
-| `handler_id` | string | Yes |
-| `type` | string | Yes |
-| `billing_address` | Postal Address | No |
-| `credential` | Payment Credential | No |
-| `display` | object | No |
+| Field             | Type               | Required |
+| ----------------- | ------------------ | -------- |
+| `id`              | string             | Yes      |
+| `handler_id`      | string             | Yes      |
+| `type`            | string             | Yes      |
+| `billing_address` | Postal Address     | No       |
+| `credential`      | Payment Credential | No       |
+| `display`         | object             | No       |
 
 #### Selected Payment Instrument
 
@@ -386,75 +395,75 @@ Extends Payment Instrument with:
 
 #### Payment Credential
 
-| Field | Type | Required |
-|-------|------|----------|
+| Field  | Type   | Required            |
+| ------ | ------ | ------------------- |
 | `type` | string | Yes (discriminator) |
 
 #### Message Error
 
-| Field | Type | Required |
-|-------|------|----------|
-| `type` | string | Yes (constant: "error") |
-| `code` | string | Yes |
-| `path` | string (RFC 9535 JSONPath) | No |
-| `content_type` | string ("plain"/"markdown") | No (default: "plain") |
-| `content` | string | Yes |
-| `severity` | string | Yes (enum: "recoverable", "requires_buyer_input", "requires_buyer_review") |
+| Field          | Type                        | Required                                                                   |
+| -------------- | --------------------------- | -------------------------------------------------------------------------- |
+| `type`         | string                      | Yes (constant: "error")                                                    |
+| `code`         | string                      | Yes                                                                        |
+| `path`         | string (RFC 9535 JSONPath)  | No                                                                         |
+| `content_type` | string ("plain"/"markdown") | No (default: "plain")                                                      |
+| `content`      | string                      | Yes                                                                        |
+| `severity`     | string                      | Yes (enum: "recoverable", "requires_buyer_input", "requires_buyer_review") |
 
 #### Message Warning
 
-| Field | Type | Required |
-|-------|------|----------|
-| `type` | string | Yes (constant: "warning") |
-| `path` | string | No |
-| `code` | string | Yes |
-| `content` | string | Yes (MUST be displayed) |
-| `content_type` | string | No |
+| Field          | Type   | Required                  |
+| -------------- | ------ | ------------------------- |
+| `type`         | string | Yes (constant: "warning") |
+| `path`         | string | No                        |
+| `code`         | string | Yes                       |
+| `content`      | string | Yes (MUST be displayed)   |
+| `content_type` | string | No                        |
 
 #### Message Info
 
-| Field | Type | Required |
-|-------|------|----------|
-| `type` | string | Yes (constant: "info") |
-| `path` | string | No |
-| `code` | string | No |
-| `content_type` | string | No |
-| `content` | string | Yes |
+| Field          | Type   | Required               |
+| -------------- | ------ | ---------------------- |
+| `type`         | string | Yes (constant: "info") |
+| `path`         | string | No                     |
+| `code`         | string | No                     |
+| `content_type` | string | No                     |
+| `content`      | string | Yes                    |
 
 #### Link
 
-| Field | Type | Required |
-|-------|------|----------|
-| `type` | string | Yes |
-| `url` | string | Yes |
-| `title` | string | No |
+| Field   | Type   | Required |
+| ------- | ------ | -------- |
+| `type`  | string | Yes      |
+| `url`   | string | Yes      |
+| `title` | string | No       |
 
 **Well-Known Link Types:** `privacy_policy`, `terms_of_service`, `refund_policy`, `shipping_policy`, `faq`
 
 #### Order Confirmation
 
-| Field | Type | Required |
-|-------|------|----------|
-| `id` | string | Yes |
-| `permalink_url` | string | Yes |
+| Field           | Type   | Required |
+| --------------- | ------ | -------- |
+| `id`            | string | Yes      |
+| `permalink_url` | string | Yes      |
 
 #### Root Checkout Response
 
-| Field | Type | Required |
-|-------|------|----------|
-| `ucp` | UCP Response Checkout | Yes |
-| `id` | string | Yes |
-| `line_items` | Array[Line Item] | Yes |
-| `buyer` | Buyer | No |
-| `status` | string (enum) | Yes |
-| `currency` | string (ISO 4217) | Yes |
-| `totals` | Array[Total] | Yes |
-| `messages` | Array[Message] | No |
-| `links` | Array[Link] | Yes |
-| `expires_at` | string (RFC 3339) | No (default: 6 hours) |
-| `continue_url` | string | No (MUST for requires_escalation) |
-| `payment` | Payment | No |
-| `order` | Order Confirmation | No |
+| Field          | Type                  | Required                          |
+| -------------- | --------------------- | --------------------------------- |
+| `ucp`          | UCP Response Checkout | Yes                               |
+| `id`           | string                | Yes                               |
+| `line_items`   | Array[Line Item]      | Yes                               |
+| `buyer`        | Buyer                 | No                                |
+| `status`       | string (enum)         | Yes                               |
+| `currency`     | string (ISO 4217)     | Yes                               |
+| `totals`       | Array[Total]          | Yes                               |
+| `messages`     | Array[Message]        | No                                |
+| `links`        | Array[Link]           | Yes                               |
+| `expires_at`   | string (RFC 3339)     | No (default: 6 hours)             |
+| `continue_url` | string                | No (MUST for requires_escalation) |
+| `payment`      | Payment               | No                                |
+| `order`        | Order Confirmation    | No                                |
 
 ---
 
@@ -496,35 +505,35 @@ Extends Payment Instrument with:
 
 #### FulfillmentMethod
 
-| Field | Type | Required |
-|-------|------|----------|
-| `id` | string | Yes |
-| `type` | string (enum: `shipping`, `pickup`) | Yes |
-| `line_item_ids` | array[string] | Yes |
-| `destinations` | array[FulfillmentDestination] | No |
-| `selected_destination_id` | string/null | No |
-| `groups` | array[FulfillmentGroup] | No |
+| Field                     | Type                                | Required |
+| ------------------------- | ----------------------------------- | -------- |
+| `id`                      | string                              | Yes      |
+| `type`                    | string (enum: `shipping`, `pickup`) | Yes      |
+| `line_item_ids`           | array[string]                       | Yes      |
+| `destinations`            | array[FulfillmentDestination]       | No       |
+| `selected_destination_id` | string/null                         | No       |
+| `groups`                  | array[FulfillmentGroup]             | No       |
 
 #### FulfillmentGroup
 
-| Field | Type | Required |
-|-------|------|----------|
-| `id` | string | Yes |
-| `line_item_ids` | array[string] | Yes |
-| `options` | array[FulfillmentOption] | No |
-| `selected_option_id` | string/null | No |
+| Field                | Type                     | Required |
+| -------------------- | ------------------------ | -------- |
+| `id`                 | string                   | Yes      |
+| `line_item_ids`      | array[string]            | Yes      |
+| `options`            | array[FulfillmentOption] | No       |
+| `selected_option_id` | string/null              | No       |
 
 #### FulfillmentOption
 
-| Field | Type | Required |
-|-------|------|----------|
-| `id` | string | Yes |
-| `title` | string | Yes |
-| `description` | string | No |
-| `carrier` | string | No |
-| `earliest_fulfillment_time` | string (ISO 8601) | No |
-| `latest_fulfillment_time` | string (ISO 8601) | No |
-| `totals` | array[Total] | Yes |
+| Field                       | Type              | Required |
+| --------------------------- | ----------------- | -------- |
+| `id`                        | string            | Yes      |
+| `title`                     | string            | Yes      |
+| `description`               | string            | No       |
+| `carrier`                   | string            | No       |
+| `earliest_fulfillment_time` | string (ISO 8601) | No       |
+| `latest_fulfillment_time`   | string (ISO 8601) | No       |
+| `totals`                    | array[Total]      | Yes      |
 
 #### FulfillmentDestination (union type)
 
@@ -532,27 +541,29 @@ Either `ShippingDestination` (extends Postal Address with `id`) or `RetailLocati
 
 #### RetailLocation
 
-| Field | Type | Required |
-|-------|------|----------|
-| `id` | string | Yes |
-| `name` | string | Yes |
-| `address` | PostalAddress | No |
+| Field     | Type          | Required |
+| --------- | ------------- | -------- |
+| `id`      | string        | Yes      |
+| `name`    | string        | Yes      |
+| `address` | PostalAddress | No       |
 
 #### FulfillmentAvailableMethod
 
-| Field | Type | Required |
-|-------|------|----------|
-| `type` | string (enum: `shipping`, `pickup`) | Yes |
-| `line_item_ids` | array[string] | Yes |
-| `fulfillable_on` | string/null ("now" or ISO 8601) | No |
-| `description` | string | No |
+| Field            | Type                                | Required |
+| ---------------- | ----------------------------------- | -------- |
+| `type`           | string (enum: `shipping`, `pickup`) | Yes      |
+| `line_item_ids`  | array[string]                       | Yes      |
+| `fulfillable_on` | string/null ("now" or ISO 8601)     | No       |
+| `description`    | string                              | No       |
 
 ### 3.5 Configuration
 
 **Platform Profile (`platform_schema`):**
+
 - `supports_multi_group` (boolean): Enables multiple groups per method. Default: false.
 
 **Business Profile (`merchant_config`):**
+
 - `allows_multi_destination` (object): Per-type multi-destination support
 - `allows_method_combinations` (array): Allowed method type combinations
 
@@ -572,49 +583,49 @@ Either `ShippingDestination` (extends Postal Address with `id`) or `RetailLocati
 
 #### Discounts Object
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `codes` | array[string] | No | Case-insensitive. Replaces previously submitted codes. Empty array clears. |
-| `applied` | array[AppliedDiscount] | No | Discounts successfully applied (code-based and automatic) |
+| Field     | Type                   | Required | Description                                                                |
+| --------- | ---------------------- | -------- | -------------------------------------------------------------------------- |
+| `codes`   | array[string]          | No       | Case-insensitive. Replaces previously submitted codes. Empty array clears. |
+| `applied` | array[AppliedDiscount] | No       | Discounts successfully applied (code-based and automatic)                  |
 
 #### Applied Discount
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `code` | string | No | Omitted for automatic discounts |
-| `title` | string | Yes | Human-readable name |
-| `amount` | integer | Yes | Total discount in minor currency units |
-| `automatic` | boolean | No | True if applied automatically |
-| `method` | string (enum: `each`, `across`) | No | Allocation method |
-| `priority` | integer | No | Stacking order (lower = first) |
-| `allocations` | array[Allocation] | No | Breakdown of where discount allocated |
+| Field         | Type                            | Required | Description                            |
+| ------------- | ------------------------------- | -------- | -------------------------------------- |
+| `code`        | string                          | No       | Omitted for automatic discounts        |
+| `title`       | string                          | Yes      | Human-readable name                    |
+| `amount`      | integer                         | Yes      | Total discount in minor currency units |
+| `automatic`   | boolean                         | No       | True if applied automatically          |
+| `method`      | string (enum: `each`, `across`) | No       | Allocation method                      |
+| `priority`    | integer                         | No       | Stacking order (lower = first)         |
+| `allocations` | array[Allocation]               | No       | Breakdown of where discount allocated  |
 
 #### Allocation
 
-| Field | Type | Required |
-|-------|------|----------|
-| `path` | string (JSONPath) | Yes |
-| `amount` | integer | Yes |
+| Field    | Type              | Required |
+| -------- | ----------------- | -------- |
+| `path`   | string (JSONPath) | Yes      |
+| `amount` | integer           | Yes      |
 
 **Invariant:** Sum of `allocations[].amount` equals `applied_discount.amount`.
 
 ### 4.3 Error Codes (Discount)
 
-| Code | Description |
-|------|-------------|
-| `discount_code_expired` | Code has expired |
-| `discount_code_invalid` | Code not found or malformed |
-| `discount_code_already_applied` | Code is already applied |
+| Code                                   | Description                                 |
+| -------------------------------------- | ------------------------------------------- |
+| `discount_code_expired`                | Code has expired                            |
+| `discount_code_invalid`                | Code not found or malformed                 |
+| `discount_code_already_applied`        | Code is already applied                     |
 | `discount_code_combination_disallowed` | Cannot combine with another active discount |
-| `discount_code_user_not_logged_in` | Code requires authenticated user |
-| `discount_code_user_ineligible` | User does not meet eligibility criteria |
+| `discount_code_user_not_logged_in`     | Code requires authenticated user            |
+| `discount_code_user_ineligible`        | User does not meet eligibility criteria     |
 
 ### 4.4 Allocation Method
 
-| Method | Meaning |
-|--------|---------|
-| `each` | Applied independently per eligible item |
-| `across` | Split proportionally by value |
+| Method   | Meaning                                 |
+| -------- | --------------------------------------- |
+| `each`   | Applied independently per eligible item |
+| `across` | Split proportionally by value           |
 
 ### 4.5 Stacking Example
 
@@ -626,10 +637,10 @@ Discount B (priority: 2): $10 off -> $80 - $10 = $70
 
 ### 4.6 Impact on Totals
 
-| Total Type | When to Use |
-|------------|------------|
-| `items_discount` | Discounts allocated to line items (`$.line_items[*]`) |
-| `discount` | Order-level discounts (shipping, fees, flat order amount) |
+| Total Type       | When to Use                                               |
+| ---------------- | --------------------------------------------------------- |
+| `items_discount` | Discounts allocated to line items (`$.line_items[*]`)     |
+| `discount`       | Order-level discounts (shipping, fees, flat order amount) |
 
 **Invariant:** `totals[type=items_discount].amount` equals `sum(line_items[].discount)`.
 
@@ -653,12 +664,12 @@ All discount amounts are positive integers in minor currency units. Display as s
 
 #### Consent Object (at `checkout.buyer.consent`)
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `analytics` | boolean | No | Consent for analytics and performance tracking |
-| `preferences` | boolean | No | Consent for storing user preferences |
-| `marketing` | boolean | No | Consent for marketing communications |
-| `sale_of_data` | boolean | No | Consent for selling data to third parties (CCPA) |
+| Field          | Type    | Required | Description                                      |
+| -------------- | ------- | -------- | ------------------------------------------------ |
+| `analytics`    | boolean | No       | Consent for analytics and performance tracking   |
+| `preferences`  | boolean | No       | Consent for storing user preferences             |
+| `marketing`    | boolean | No       | Consent for marketing communications             |
+| `sale_of_data` | boolean | No       | Consent for selling data to third parties (CCPA) |
 
 ### 5.2 Key Principles
 
@@ -700,47 +711,47 @@ All discount amounts are positive integers in minor currency units. Display as s
 
 ### 6.2 Signature Algorithms
 
-| Algorithm | Description |
-|-----------|-------------|
-| ES256 | ECDSA using P-256 curve and SHA-256 (**RECOMMENDED**) |
-| ES384 | ECDSA using P-384 curve and SHA-384 |
-| ES512 | ECDSA using P-521 curve and SHA-512 |
+| Algorithm | Description                                           |
+| --------- | ----------------------------------------------------- |
+| ES256     | ECDSA using P-256 curve and SHA-256 (**RECOMMENDED**) |
+| ES384     | ECDSA using P-384 curve and SHA-384                   |
+| ES512     | ECDSA using P-521 curve and SHA-512                   |
 
 ### 6.3 JWS Header Claims
 
-| Claim | Type | Required |
-|-------|------|----------|
-| `alg` | string | Yes (ES256/ES384/ES512) |
+| Claim | Type   | Required                                   |
+| ----- | ------ | ------------------------------------------ |
+| `alg` | string | Yes (ES256/ES384/ES512)                    |
 | `kid` | string | Yes (references business's `signing_keys`) |
 
 ### 6.4 Data Schemas
 
 #### AP2 Checkout Response
 
-| Field | Type | Required |
-|-------|------|----------|
+| Field                    | Type                  | Required                      |
+| ------------------------ | --------------------- | ----------------------------- |
 | `merchant_authorization` | string (JWS Detached) | No (MUST when AP2 negotiated) |
 
 Pattern: `^[A-Za-z0-9_-]+\.\.[A-Za-z0-9_-]+$`
 
 #### AP2 Complete Request
 
-| Field | Type | Required |
-|-------|------|----------|
+| Field              | Type               | Required                      |
+| ------------------ | ------------------ | ----------------------------- |
 | `checkout_mandate` | string (SD-JWT+kb) | No (MUST when AP2 negotiated) |
 
 Pattern: `^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+(~[A-Za-z0-9_-]+)*$`
 
 ### 6.5 Error Codes (AP2)
 
-| Code | Description |
-|------|-------------|
-| `mandate_required` | AP2 negotiated but request lacks `ap2.checkout_mandate` |
-| `agent_missing_key` | Platform profile lacks valid `signing_keys` entry |
-| `mandate_invalid_signature` | Mandate signature cannot be verified |
-| `mandate_expired` | Mandate `exp` timestamp has passed |
-| `mandate_scope_mismatch` | Mandate bound to different checkout |
-| `merchant_authorization_invalid` | Business authorization signature verification failed |
+| Code                             | Description                                                    |
+| -------------------------------- | -------------------------------------------------------------- |
+| `mandate_required`               | AP2 negotiated but request lacks `ap2.checkout_mandate`        |
+| `agent_missing_key`              | Platform profile lacks valid `signing_keys` entry              |
+| `mandate_invalid_signature`      | Mandate signature cannot be verified                           |
+| `mandate_expired`                | Mandate `exp` timestamp has passed                             |
+| `mandate_scope_mismatch`         | Mandate bound to different checkout                            |
+| `merchant_authorization_invalid` | Business authorization signature verification failed           |
 | `merchant_authorization_missing` | AP2 negotiated but response lacks `ap2.merchant_authorization` |
 
 ---
@@ -763,70 +774,71 @@ Pattern: `^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+(~[A-Za-z0-9_-]+)*$`
 
 #### Order
 
-| Field | Type | Required |
-|-------|------|----------|
-| `ucp` | UCP Response Order Schema | Yes |
-| `id` | string | Yes |
-| `checkout_id` | string | Yes |
-| `permalink_url` | string | Yes |
-| `line_items` | Array[Order Line Item] | Yes |
-| `fulfillment` | object (expectations + events) | Yes |
-| `adjustments` | Array[Adjustment] | No |
-| `totals` | Array[Total] | Yes |
+| Field           | Type                           | Required |
+| --------------- | ------------------------------ | -------- |
+| `ucp`           | UCP Response Order Schema      | Yes      |
+| `id`            | string                         | Yes      |
+| `checkout_id`   | string                         | Yes      |
+| `permalink_url` | string                         | Yes      |
+| `line_items`    | Array[Order Line Item]         | Yes      |
+| `fulfillment`   | object (expectations + events) | Yes      |
+| `adjustments`   | Array[Adjustment]              | No       |
+| `totals`        | Array[Total]                   | Yes      |
 
 #### Order Line Item
 
-| Field | Type | Required |
-|-------|------|----------|
-| `id` | string | Yes |
-| `item` | Item | Yes |
-| `quantity` | object (`total`, `fulfilled`) | Yes |
-| `totals` | Array[Total] | Yes |
-| `status` | string (derived) | Yes |
-| `parent_id` | string | No |
+| Field       | Type                          | Required |
+| ----------- | ----------------------------- | -------- |
+| `id`        | string                        | Yes      |
+| `item`      | Item                          | Yes      |
+| `quantity`  | object (`total`, `fulfilled`) | Yes      |
+| `totals`    | Array[Total]                  | Yes      |
+| `status`    | string (derived)              | Yes      |
+| `parent_id` | string                        | No       |
 
 **Status Derivation:**
+
 - If `fulfilled == total` -> "fulfilled"
 - Else if `fulfilled > 0` -> "partial"
 - Else -> "processing"
 
 #### Expectation
 
-| Field | Type | Required |
-|-------|------|----------|
-| `id` | string | Yes |
-| `line_items` | Array[{id, quantity}] | Yes |
-| `method_type` | string (shipping/pickup/digital) | Yes |
-| `destination` | Postal Address | Yes |
-| `description` | string | No |
-| `fulfillable_on` | string ("now" or ISO 8601) | No |
+| Field            | Type                             | Required |
+| ---------------- | -------------------------------- | -------- |
+| `id`             | string                           | Yes      |
+| `line_items`     | Array[{id, quantity}]            | Yes      |
+| `method_type`    | string (shipping/pickup/digital) | Yes      |
+| `destination`    | Postal Address                   | Yes      |
+| `description`    | string                           | No       |
+| `fulfillable_on` | string ("now" or ISO 8601)       | No       |
 
 #### Fulfillment Event
 
-| Field | Type | Required |
-|-------|------|----------|
-| `id` | string | Yes |
-| `occurred_at` | string (RFC 3339) | Yes |
-| `type` | string (open) | Yes |
-| `line_items` | Array[{id, quantity}] | Yes |
-| `tracking_number` | string | No (required if type != processing) |
-| `tracking_url` | string | No |
-| `carrier` | string | No |
-| `description` | string | No |
+| Field             | Type                  | Required                            |
+| ----------------- | --------------------- | ----------------------------------- |
+| `id`              | string                | Yes                                 |
+| `occurred_at`     | string (RFC 3339)     | Yes                                 |
+| `type`            | string (open)         | Yes                                 |
+| `line_items`      | Array[{id, quantity}] | Yes                                 |
+| `tracking_number` | string                | No (required if type != processing) |
+| `tracking_url`    | string                | No                                  |
+| `carrier`         | string                | No                                  |
+| `description`     | string                | No                                  |
 
 **Common Fulfillment Event Types:** `processing`, `shipped`, `in_transit`, `delivered`, `failed_attempt`, `canceled`, `undeliverable`, `returned_to_sender`
 
 #### Adjustment
 
-| Field | Type | Required |
-|-------|------|----------|
-| `id` | string | Yes |
-| `type` | string (open) | Yes |
-| `occurred_at` | string (RFC 3339) | Yes |
-| `status` | string (pending/completed/failed) | Yes |
-| `line_items` | Array[{id, quantity}] | No |
-| `amount` | integer (minor units) | No |
-| `description` | string | No |
+| Field         | Type                              | Required |
+| ------------- | --------------------------------- | -------- |
+| `id`          | string                            | Yes      |
+| `type`        | string (open)                     | Yes      |
+| `occurred_at` | string (RFC 3339)                 | Yes      |
+| `status`      | string (pending/completed/failed) | Yes      |
+| `line_items`  | Array[{id, quantity}]             | No       |
+| `amount`      | integer (minor units)             | No       |
+| `description` | string                            | No       |
 
 **Common Adjustment Types:** `refund`, `return`, `credit`, `price_adjustment`, `dispute`, `cancellation`
 
@@ -835,31 +847,37 @@ Pattern: `^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+(~[A-Za-z0-9_-]+)*$`
 **Method:** `POST` to platform-provided URL
 
 **Webhook Inputs (same as Order + event metadata):**
+
 - All Order fields
 - `event_id` (string, required): Unique event identifier
 - `created_time` (string, RFC 3339, required): Event timestamp
 
 **Configuration:**
+
 ```json
 {
-  "dev.ucp.shopping.order": [{
-    "version": "2026-01-23",
-    "config": {
-      "webhook_url": "https://platform.example.com/webhooks/ucp/orders"
+  "dev.ucp.shopping.order": [
+    {
+      "version": "2026-01-23",
+      "config": {
+        "webhook_url": "https://platform.example.com/webhooks/ucp/orders"
+      }
     }
-  }]
+  ]
 }
 ```
 
 ### 7.4 Webhook Signature Verification
 
 **Business (Signing):**
+
 1. Select key from `signing_keys` array
 2. Create detached JWT (RFC 7797) over request body
 3. Include JWT in `Request-Signature` header
 4. Include key ID in JWT header's `kid` claim
 
 **Platform (Verification):**
+
 1. Extract `Request-Signature` header
 2. Parse JWT header to retrieve `kid`
 3. Fetch business's UCP profile from `/.well-known/ucp`
@@ -917,14 +935,14 @@ Pattern: `^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+(~[A-Za-z0-9_-]+)*$`
 
 ### 8.7 Scopes
 
-| Resource | Operation | Scope |
-|----------|-----------|-------|
-| CheckoutSession | Get | `ucp:scopes:checkout_session` |
-| CheckoutSession | Create | `ucp:scopes:checkout_session` |
-| CheckoutSession | Update | `ucp:scopes:checkout_session` |
-| CheckoutSession | Delete | `ucp:scopes:checkout_session` |
-| CheckoutSession | Cancel | `ucp:scopes:checkout_session` |
-| CheckoutSession | Complete | `ucp:scopes:checkout_session` |
+| Resource        | Operation | Scope                         |
+| --------------- | --------- | ----------------------------- |
+| CheckoutSession | Get       | `ucp:scopes:checkout_session` |
+| CheckoutSession | Create    | `ucp:scopes:checkout_session` |
+| CheckoutSession | Update    | `ucp:scopes:checkout_session` |
+| CheckoutSession | Delete    | `ucp:scopes:checkout_session` |
+| CheckoutSession | Cancel    | `ucp:scopes:checkout_session` |
+| CheckoutSession | Complete  | `ucp:scopes:checkout_session` |
 
 ### 8.8 Authorization Server Metadata (RFC 8414)
 
@@ -968,44 +986,44 @@ Pattern: `^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+(~[A-Za-z0-9_-]+)*$`
 
 ### 9.4 HTTP Endpoints
 
-| Operation | Method | Endpoint |
-|-----------|--------|----------|
-| Create Checkout | POST | `/checkout-sessions` |
-| Get Checkout | GET | `/checkout-sessions/{id}` |
-| Update Checkout | PUT | `/checkout-sessions/{id}` |
-| Complete Checkout | POST | `/checkout-sessions/{id}/complete` |
-| Cancel Checkout | POST | `/checkout-sessions/{id}/cancel` |
+| Operation         | Method | Endpoint                           |
+| ----------------- | ------ | ---------------------------------- |
+| Create Checkout   | POST   | `/checkout-sessions`               |
+| Get Checkout      | GET    | `/checkout-sessions/{id}`          |
+| Update Checkout   | PUT    | `/checkout-sessions/{id}`          |
+| Complete Checkout | POST   | `/checkout-sessions/{id}/complete` |
+| Cancel Checkout   | POST   | `/checkout-sessions/{id}/cancel`   |
 
 ### 9.5 Request Headers
 
-| Header | Required | Description |
-|--------|----------|-------------|
-| `UCP-Agent` | Yes | Platform profile URI (RFC 8941 Dictionary) |
-| `Authorization` | No | OAuth token (client_credentials or authorization_code) |
-| `X-API-Key` | No | Reusable API key allocated by business |
-| `Request-Signature` | Yes | Ensure authenticity and integrity |
-| `Idempotency-Key` | Yes | Prevents duplicate operations during retries |
-| `Request-Id` | Yes | For tracing across network layers |
-| `User-Agent` | No | User agent string |
-| `Content-Type` | No | Representation metadata |
-| `Accept` | No | Content negotiation |
-| `Accept-Language` | No | Localization |
-| `Accept-Encoding` | No | Compression |
+| Header              | Required | Description                                            |
+| ------------------- | -------- | ------------------------------------------------------ |
+| `UCP-Agent`         | Yes      | Platform profile URI (RFC 8941 Dictionary)             |
+| `Authorization`     | No       | OAuth token (client_credentials or authorization_code) |
+| `X-API-Key`         | No       | Reusable API key allocated by business                 |
+| `Request-Signature` | Yes      | Ensure authenticity and integrity                      |
+| `Idempotency-Key`   | Yes      | Prevents duplicate operations during retries           |
+| `Request-Id`        | Yes      | For tracing across network layers                      |
+| `User-Agent`        | No       | User agent string                                      |
+| `Content-Type`      | No       | Representation metadata                                |
+| `Accept`            | No       | Content negotiation                                    |
+| `Accept-Language`   | No       | Localization                                           |
+| `Accept-Encoding`   | No       | Compression                                            |
 
 ### 9.6 HTTP Status Codes
 
-| Code | Description |
-|------|-------------|
-| `200 OK` | Request successful |
-| `201 Created` | Resource successfully created |
-| `400 Bad Request` | Request invalid |
-| `401 Unauthorized` | Authentication required/failed |
-| `403 Forbidden` | Authenticated but insufficient permissions |
-| `404 Not Found` | Resource not found |
-| `409 Conflict` | Conflict (e.g., idempotent key reuse) |
-| `429 Too Many Requests` | Rate limit exceeded |
-| `500 Internal Server Error` | Unexpected server condition |
-| `503 Service Unavailable` | Temporary unavailability |
+| Code                        | Description                                |
+| --------------------------- | ------------------------------------------ |
+| `200 OK`                    | Request successful                         |
+| `201 Created`               | Resource successfully created              |
+| `400 Bad Request`           | Request invalid                            |
+| `401 Unauthorized`          | Authentication required/failed             |
+| `403 Forbidden`             | Authenticated but insufficient permissions |
+| `404 Not Found`             | Resource not found                         |
+| `409 Conflict`              | Conflict (e.g., idempotent key reuse)      |
+| `429 Too Many Requests`     | Rate limit exceeded                        |
+| `500 Internal Server Error` | Unexpected server condition                |
+| `503 Service Unavailable`   | Temporary unavailability                   |
 
 ### 9.7 UCP-Agent Header Format
 
@@ -1037,13 +1055,13 @@ UCP-Agent: profile="https://platform.example/profile"
 
 ### 10.2 MCP Tools
 
-| Tool | Maps To | Key Input Parameters |
-|------|---------|---------------------|
-| `create_checkout` | Create Checkout | `checkout` (required) |
-| `get_checkout` | Get Checkout | `id` (required) |
-| `update_checkout` | Update Checkout | `id` (required), `checkout` (required) |
+| Tool                | Maps To           | Key Input Parameters                                                              |
+| ------------------- | ----------------- | --------------------------------------------------------------------------------- |
+| `create_checkout`   | Create Checkout   | `checkout` (required)                                                             |
+| `get_checkout`      | Get Checkout      | `id` (required)                                                                   |
+| `update_checkout`   | Update Checkout   | `id` (required), `checkout` (required)                                            |
 | `complete_checkout` | Complete Checkout | `meta` (required, with `idempotency-key`), `id` (required), `checkout` (required) |
-| `cancel_checkout` | Cancel Checkout | `meta` (required, with `idempotency-key`), `id` (required) |
+| `cancel_checkout`   | Cancel Checkout   | `meta` (required, with `idempotency-key`), `id` (required)                        |
 
 ### 10.3 MCP Error Format
 
@@ -1056,12 +1074,14 @@ UCP-Agent: profile="https://platform.example/profile"
     "message": "Internal error",
     "data": {
       "status": "error",
-      "errors": [{
-        "code": "MERCHANDISE_NOT_AVAILABLE",
-        "message": "One or more cart items are not available",
-        "severity": "requires_buyer_input",
-        "details": { "invalid_items": ["sku_999"] }
-      }]
+      "errors": [
+        {
+          "code": "MERCHANDISE_NOT_AVAILABLE",
+          "message": "One or more cart items are not available",
+          "severity": "requires_buyer_input",
+          "details": { "invalid_items": ["sku_999"] }
+        }
+      ]
     }
   }
 }
@@ -1075,7 +1095,9 @@ UCP-Agent: profile="https://platform.example/profile"
   "method": "tools/call",
   "params": {
     "name": "[tool_name]",
-    "arguments": { /* OpenRPC params */ }
+    "arguments": {
+      /* OpenRPC params */
+    }
   }
 }
 ```
@@ -1087,13 +1109,15 @@ UCP-Agent: profile="https://platform.example/profile"
   "ucp": {
     "version": "2026-01-23",
     "services": {
-      "dev.ucp.shopping": [{
-        "version": "2026-01-23",
-        "spec": "https://ucp.dev/2026-01-23/specification/overview",
-        "transport": "mcp",
-        "schema": "https://ucp.dev/2026-01-23/services/shopping/openrpc.json",
-        "endpoint": "https://business.example.com/ucp/mcp"
-      }]
+      "dev.ucp.shopping": [
+        {
+          "version": "2026-01-23",
+          "spec": "https://ucp.dev/2026-01-23/specification/overview",
+          "transport": "mcp",
+          "schema": "https://ucp.dev/2026-01-23/services/shopping/openrpc.json",
+          "endpoint": "https://business.example.com/ucp/mcp"
+        }
+      ]
     }
   }
 }
@@ -1115,13 +1139,13 @@ UCP-Agent: profile="https://platform.example/profile"
 
 ### 11.2 Key Data Parts
 
-| Key | Description |
-|-----|-------------|
-| `a2a.ucp.checkout` | Checkout data |
-| `a2a.ucp.checkout.payment` | Payment data |
-| `a2a.ucp.checkout.risk_signals` | Risk signals |
-| `ap2.merchant_authorization` | Merchant JWS signature |
-| `ap2.checkout_mandate` | User signed mandate |
+| Key                             | Description            |
+| ------------------------------- | ---------------------- |
+| `a2a.ucp.checkout`              | Checkout data          |
+| `a2a.ucp.checkout.payment`      | Payment data           |
+| `a2a.ucp.checkout.risk_signals` | Risk signals           |
+| `ap2.merchant_authorization`    | Merchant JWS signature |
+| `ap2.checkout_mandate`          | User signed mandate    |
 
 ### 11.3 A2A Extension URI
 
@@ -1131,19 +1155,23 @@ UCP-Agent: profile="https://platform.example/profile"
 
 ```json
 {
-  "extensions": [{
-    "uri": "https://ucp.dev/2026-01-23/specification/reference",
-    "description": "Business agent supporting UCP",
-    "params": {
-      "capabilities": {
-        "dev.ucp.shopping.checkout": [{"version": "2026-01-23"}],
-        "dev.ucp.shopping.fulfillment": [{
-          "version": "2026-01-23",
-          "extends": "dev.ucp.shopping.checkout"
-        }]
+  "extensions": [
+    {
+      "uri": "https://ucp.dev/2026-01-23/specification/reference",
+      "description": "Business agent supporting UCP",
+      "params": {
+        "capabilities": {
+          "dev.ucp.shopping.checkout": [{ "version": "2026-01-23" }],
+          "dev.ucp.shopping.fulfillment": [
+            {
+              "version": "2026-01-23",
+              "extends": "dev.ucp.shopping.checkout"
+            }
+          ]
+        }
       }
     }
-  }]
+  ]
 }
 ```
 
@@ -1205,50 +1233,55 @@ UCP-Agent: profile="https://platform.example/profile"
 ### 12.4 JSON-RPC Methods
 
 #### Handshake
-| Method | Direction | Type |
-|--------|-----------|------|
+
+| Method     | Direction        | Type    |
+| ---------- | ---------------- | ------- |
 | `ec.ready` | Embedded -> Host | Request |
 
 #### Lifecycle
-| Method | Direction | Type |
-|--------|-----------|------|
-| `ec.start` | Embedded -> Host | Notification |
+
+| Method        | Direction        | Type         |
+| ------------- | ---------------- | ------------ |
+| `ec.start`    | Embedded -> Host | Notification |
 | `ec.complete` | Embedded -> Host | Notification |
 
 #### State Change
-| Method | Direction | Type |
-|--------|-----------|------|
+
+| Method                 | Direction        | Type         |
+| ---------------------- | ---------------- | ------------ |
 | `ec.line_items.change` | Embedded -> Host | Notification |
-| `ec.buyer.change` | Embedded -> Host | Notification |
-| `ec.messages.change` | Embedded -> Host | Notification |
-| `ec.payment.change` | Embedded -> Host | Notification |
+| `ec.buyer.change`      | Embedded -> Host | Notification |
+| `ec.messages.change`   | Embedded -> Host | Notification |
+| `ec.payment.change`    | Embedded -> Host | Notification |
 
 #### Payment Extension
-| Method | Direction | Type |
-|--------|-----------|------|
+
+| Method                                  | Direction        | Type    |
+| --------------------------------------- | ---------------- | ------- |
 | `ec.payment.instruments_change_request` | Embedded -> Host | Request |
-| `ec.payment.credential_request` | Embedded -> Host | Request |
+| `ec.payment.credential_request`         | Embedded -> Host | Request |
 
 #### Fulfillment Extension
-| Method | Direction | Type |
-|--------|-----------|------|
-| `ec.fulfillment.change` | Embedded -> Host | Notification |
-| `ec.fulfillment.address_change_request` | Embedded -> Host | Request |
+
+| Method                                  | Direction        | Type         |
+| --------------------------------------- | ---------------- | ------------ |
+| `ec.fulfillment.change`                 | Embedded -> Host | Notification |
+| `ec.fulfillment.address_change_request` | Embedded -> Host | Request      |
 
 ### 12.5 Query Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `ec_version` | string | Yes | UCP version (YYYY-MM-DD) |
-| `ec_auth` | string | No | Authentication token |
-| `ec_delegate` | string | No | Comma-delimited delegation list |
+| Parameter     | Type   | Required | Description                     |
+| ------------- | ------ | -------- | ------------------------------- |
+| `ec_version`  | string | Yes      | UCP version (YYYY-MM-DD)        |
+| `ec_auth`     | string | No       | Authentication token            |
+| `ec_delegate` | string | No       | Comma-delimited delegation list |
 
 ### 12.6 Delegation Identifiers
 
-| Identifier | Corresponding Message |
-|------------|----------------------|
+| Identifier                   | Corresponding Message                   |
+| ---------------------------- | --------------------------------------- |
 | `payment.instruments_change` | `ec.payment.instruments_change_request` |
-| `payment.credential` | `ec.payment.credential_request` |
+| `payment.credential`         | `ec.payment.credential_request`         |
 | `fulfillment.address_change` | `ec.fulfillment.address_change_request` |
 
 ### 12.7 Delegation Narrowing Chain
@@ -1259,19 +1292,20 @@ config.delegate >= ec_delegate >= ec.ready delegate
 
 ### 12.8 Error Codes (EP)
 
-| Code | Description |
-|------|-------------|
-| `abort_error` | User cancelled the interaction |
-| `security_error` | Origin validation failed |
-| `not_supported_error` | Payment method not supported |
-| `invalid_state_error` | Handshake attempted out of order |
-| `not_allowed_error` | Request missing valid User Activation |
+| Code                  | Description                           |
+| --------------------- | ------------------------------------- |
+| `abort_error`         | User cancelled the interaction        |
+| `security_error`      | Origin validation failed              |
+| `not_supported_error` | Payment method not supported          |
+| `invalid_state_error` | Handshake attempted out of order      |
+| `not_allowed_error`   | Request missing valid User Activation |
 
 ### 12.9 Communication Channels
 
 **Web-Based Hosts:** `postMessage` between host and Checkout windows. Optional `MessageChannel` via `ec.ready` response.
 
 **Native Hosts:** Inject globals:
+
 - `window.EmbeddedCheckoutProtocolConsumer` (preferred)
 - `window.webkit.messageHandlers.EmbeddedCheckoutProtocolConsumer`
 
@@ -1315,40 +1349,40 @@ config.delegate >= ec_delegate >= ec.ready delegate
 
 ### 13.5 Handler Declaration Variants
 
-| Variant | Context | Purpose |
-|---------|---------|---------|
-| `business_schema` | `/.well-known/ucp` | Business identity and configuration |
-| `platform_schema` | Platform profile URI | Platform identity and support |
+| Variant           | Context                      | Purpose                                   |
+| ----------------- | ---------------------------- | ----------------------------------------- |
+| `business_schema` | `/.well-known/ucp`           | Business identity and configuration       |
+| `platform_schema` | Platform profile URI         | Platform identity and support             |
 | `response_schema` | Checkout/Order API responses | Runtime configuration with merged context |
 
 ### 13.6 Base Schemas
 
-| Schema | Description |
-|--------|-------------|
-| `payment_instrument.json` | Base: id, handler_id, type, billing_address, credential, display |
-| `card_payment_instrument.json` | Extends base with display: brand, last_digits, expiry, card art |
-| `payment_credential.json` | Base: type discriminator only |
-| `token_credential.json` | Token: type + token string |
+| Schema                         | Description                                                      |
+| ------------------------------ | ---------------------------------------------------------------- |
+| `payment_instrument.json`      | Base: id, handler_id, type, billing_address, credential, display |
+| `card_payment_instrument.json` | Extends base with display: brand, last_digits, expiry, card art  |
+| `payment_credential.json`      | Base: type discriminator only                                    |
+| `token_credential.json`        | Token: type + token string                                       |
 
 ### 13.7 Card Credential
 
-| Field | Type | Required |
-|-------|------|----------|
-| `type` | string (constant: "card") | Yes |
-| `card_number_type` | string (enum: `fpan`, `network_token`, `dpan`) | Yes |
-| `number` | string | No |
-| `expiry_month` | integer (1-12) | No |
-| `expiry_year` | integer | No |
-| `name` | string | No |
-| `cvc` | string | No |
-| `cryptogram` | string | No |
-| `eci_value` | string | No |
+| Field              | Type                                           | Required |
+| ------------------ | ---------------------------------------------- | -------- |
+| `type`             | string (constant: "card")                      | Yes      |
+| `card_number_type` | string (enum: `fpan`, `network_token`, `dpan`) | Yes      |
+| `number`           | string                                         | No       |
+| `expiry_month`     | integer (1-12)                                 | No       |
+| `expiry_year`      | integer                                        | No       |
+| `name`             | string                                         | No       |
+| `cvc`              | string                                         | No       |
+| `cryptogram`       | string                                         | No       |
+| `eci_value`        | string                                         | No       |
 
 ### 13.8 Payment Identity
 
-| Field | Type | Required |
-|-------|------|----------|
-| `access_token` | string | Yes |
+| Field          | Type   | Required |
+| -------------- | ------ | -------- |
+| `access_token` | string | Yes      |
 
 ---
 
@@ -1363,48 +1397,48 @@ config.delegate >= ec_delegate >= ec.ready delegate
 
 ### 14.2 Security Requirements
 
-| Requirement | Description |
-|-------------|-------------|
-| Binding required | Credentials bound to checkout_id and identity |
-| Binding verified | Must verify binding before returning credentials |
-| Cryptographically random | Secure random generators; unguessable tokens |
-| Sufficient length | Minimum 128 bits of entropy |
-| Non-reversible | Cannot derive credential from token |
-| Scoped | Token only works with your tokenizer |
-| Time-limited | TTL appropriate to use case (typically 5-30 min) |
-| Single-use preferred | Invalidate after first detokenization when possible |
+| Requirement              | Description                                         |
+| ------------------------ | --------------------------------------------------- |
+| Binding required         | Credentials bound to checkout_id and identity       |
+| Binding verified         | Must verify binding before returning credentials    |
+| Cryptographically random | Secure random generators; unguessable tokens        |
+| Sufficient length        | Minimum 128 bits of entropy                         |
+| Non-reversible           | Cannot derive credential from token                 |
+| Scoped                   | Token only works with your tokenizer                |
+| Time-limited             | TTL appropriate to use case (typically 5-30 min)    |
+| Single-use preferred     | Invalidate after first detokenization when possible |
 
 ### 14.3 Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/tokenize` | Convert source credentials to token |
-| POST | `/detokenize` | Convert token back to credentials |
+| Method | Path          | Description                         |
+| ------ | ------------- | ----------------------------------- |
+| POST   | `/tokenize`   | Convert source credentials to token |
+| POST   | `/detokenize` | Convert token back to credentials   |
 
 ### 14.4 Binding Schema
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `checkout_id` | Yes | Checkout session this token is valid for |
-| `identity` | Conditional | Participant identity; required when caller acts on behalf of another |
+| Field         | Required    | Description                                                          |
+| ------------- | ----------- | -------------------------------------------------------------------- |
+| `checkout_id` | Yes         | Checkout session this token is valid for                             |
+| `identity`    | Conditional | Participant identity; required when caller acts on behalf of another |
 
 ### 14.5 Token Lifecycle Policies
 
-| Policy | Description |
-|--------|-------------|
-| Single-use | Invalidated after first detokenization (most secure; recommended default) |
-| TTL-based | Expires after fixed duration (e.g., 15 min) |
-| Session-scoped | Valid for checkout session duration |
+| Policy         | Description                                                               |
+| -------------- | ------------------------------------------------------------------------- |
+| Single-use     | Invalidated after first detokenization (most secure; recommended default) |
+| TTL-based      | Expires after fixed duration (e.g., 15 min)                               |
+| Session-scoped | Valid for checkout session duration                                       |
 
 ### 14.6 Schema URLs
 
-| Resource | URL |
-|----------|-----|
-| Tokenization OpenAPI | `https://ucp.dev/2026-01-23/handlers/tokenization/openapi.json` |
-| Identity Schema | `https://ucp.dev/2026-01-23/schemas/shopping/types/payment_identity.json` |
-| Binding Schema | `https://ucp.dev/2026-01-23/schemas/shopping/types/binding.json` |
-| Token Credential Schema | `https://ucp.dev/2026-01-23/schemas/shopping/types/token_credential.json` |
-| Card Instrument Schema | `https://ucp.dev/2026-01-23/schemas/shopping/types/card_payment_instrument.json` |
+| Resource                | URL                                                                              |
+| ----------------------- | -------------------------------------------------------------------------------- |
+| Tokenization OpenAPI    | `https://ucp.dev/2026-01-23/handlers/tokenization/openapi.json`                  |
+| Identity Schema         | `https://ucp.dev/2026-01-23/schemas/shopping/types/payment_identity.json`        |
+| Binding Schema          | `https://ucp.dev/2026-01-23/schemas/shopping/types/binding.json`                 |
+| Token Credential Schema | `https://ucp.dev/2026-01-23/schemas/shopping/types/token_credential.json`        |
+| Card Instrument Schema  | `https://ucp.dev/2026-01-23/schemas/shopping/types/card_payment_instrument.json` |
 
 ---
 
@@ -1426,49 +1460,49 @@ config.delegate >= ec_delegate >= ec.ready delegate
 
 ### 15.3 Type Schemas
 
-| Schema | Key Fields |
-|--------|------------|
-| Adjustment | id, type, occurred_at, status, line_items, amount, description |
-| Binding | checkout_id, identity |
-| Buyer | first_name, last_name, email, phone_number |
-| Card Credential | type="card", card_number_type, number, expiry_month, expiry_year, name, cvc, cryptogram, eci_value |
-| Card Payment Instrument | type="card" + display (brand, last_digits, expiry, card_art) |
-| Context | address_country, address_region, postal_code |
-| Expectation | id, line_items, method_type, destination, description, fulfillable_on |
-| Fulfillment | methods, available_methods |
-| Fulfillment Available Method | type, line_item_ids, fulfillable_on, description |
-| Fulfillment Destination | Union: ShippingDestination or RetailLocation |
-| Fulfillment Event | id, occurred_at, type, line_items, tracking_number, tracking_url, carrier, description |
-| Fulfillment Group | id, line_item_ids, options, selected_option_id |
-| Fulfillment Method | id, type, line_item_ids, destinations, selected_destination_id, groups |
-| Fulfillment Option | id, title, description, carrier, earliest/latest_fulfillment_time, totals |
-| Item | id, title, price, image_url |
-| Line Item | id, item, quantity, totals, parent_id |
-| Link | type, url, title |
-| Message Error | type="error", code, path, content_type, content, severity |
-| Message Info | type="info", path, code, content_type, content |
-| Message Warning | type="warning", path, code, content (MUST display), content_type |
-| Order Confirmation | id, permalink_url |
-| Order Line Item | id, item, quantity{total, fulfilled}, totals, status, parent_id |
-| Payment Account Info | payment_account_reference |
-| Payment Credential | type (discriminator) |
-| Payment Identity | access_token |
-| Payment Instrument | id, handler_id, type, billing_address, credential, display |
-| Postal Address | extended_address, street_address, address_locality, address_region, address_country, postal_code, first_name, last_name, phone_number |
-| Retail Location | id, name, address |
-| Selected Payment Instrument | (extends Payment Instrument) + selected |
-| Shipping Destination | (extends Postal Address) + id |
-| Token Credential | type, token |
-| Total | type, display_text, amount |
+| Schema                       | Key Fields                                                                                                                            |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Adjustment                   | id, type, occurred_at, status, line_items, amount, description                                                                        |
+| Binding                      | checkout_id, identity                                                                                                                 |
+| Buyer                        | first_name, last_name, email, phone_number                                                                                            |
+| Card Credential              | type="card", card_number_type, number, expiry_month, expiry_year, name, cvc, cryptogram, eci_value                                    |
+| Card Payment Instrument      | type="card" + display (brand, last_digits, expiry, card_art)                                                                          |
+| Context                      | address_country, address_region, postal_code                                                                                          |
+| Expectation                  | id, line_items, method_type, destination, description, fulfillable_on                                                                 |
+| Fulfillment                  | methods, available_methods                                                                                                            |
+| Fulfillment Available Method | type, line_item_ids, fulfillable_on, description                                                                                      |
+| Fulfillment Destination      | Union: ShippingDestination or RetailLocation                                                                                          |
+| Fulfillment Event            | id, occurred_at, type, line_items, tracking_number, tracking_url, carrier, description                                                |
+| Fulfillment Group            | id, line_item_ids, options, selected_option_id                                                                                        |
+| Fulfillment Method           | id, type, line_item_ids, destinations, selected_destination_id, groups                                                                |
+| Fulfillment Option           | id, title, description, carrier, earliest/latest_fulfillment_time, totals                                                             |
+| Item                         | id, title, price, image_url                                                                                                           |
+| Line Item                    | id, item, quantity, totals, parent_id                                                                                                 |
+| Link                         | type, url, title                                                                                                                      |
+| Message Error                | type="error", code, path, content_type, content, severity                                                                             |
+| Message Info                 | type="info", path, code, content_type, content                                                                                        |
+| Message Warning              | type="warning", path, code, content (MUST display), content_type                                                                      |
+| Order Confirmation           | id, permalink_url                                                                                                                     |
+| Order Line Item              | id, item, quantity{total, fulfilled}, totals, status, parent_id                                                                       |
+| Payment Account Info         | payment_account_reference                                                                                                             |
+| Payment Credential           | type (discriminator)                                                                                                                  |
+| Payment Identity             | access_token                                                                                                                          |
+| Payment Instrument           | id, handler_id, type, billing_address, credential, display                                                                            |
+| Postal Address               | extended_address, street_address, address_locality, address_region, address_country, postal_code, first_name, last_name, phone_number |
+| Retail Location              | id, name, address                                                                                                                     |
+| Selected Payment Instrument  | (extends Payment Instrument) + selected                                                                                               |
+| Shipping Destination         | (extends Postal Address) + id                                                                                                         |
+| Token Credential             | type, token                                                                                                                           |
+| Total                        | type, display_text, amount                                                                                                            |
 
 ### 15.4 UCP Metadata Schemas
 
-| Schema | Key Fields |
-|--------|------------|
-| Platform Discovery Profile | version, services, capabilities, payment_handlers |
-| Business Discovery Profile | version, services, capabilities, payment_handlers |
+| Schema                           | Key Fields                                        |
+| -------------------------------- | ------------------------------------------------- |
+| Platform Discovery Profile       | version, services, capabilities, payment_handlers |
+| Business Discovery Profile       | version, services, capabilities, payment_handlers |
 | Checkout Response Metadata (ucp) | version, services, capabilities, payment_handlers |
-| Order Response Metadata (ucp) | version, services, capabilities, payment_handlers |
+| Order Response Metadata (ucp)    | version, services, capabilities, payment_handlers |
 
 ### 15.5 Enum Values Summary
 
@@ -1514,29 +1548,29 @@ config.delegate >= ec_delegate >= ec.ready delegate
 
 ## Referenced Standards
 
-| Standard | Usage |
-|----------|-------|
-| RFC 2119 / RFC 8174 | Requirement keywords (MUST, SHOULD, MAY) |
-| RFC 3339 | Date/time format |
-| RFC 3986 | URI encoding |
-| RFC 6749 | OAuth 2.0 |
-| RFC 7009 | Token Revocation |
-| RFC 7515 | JSON Web Signature (JWS) |
-| RFC 7617 | HTTP Basic Authentication |
-| RFC 7797 | JWS Detached Content |
-| RFC 8259 | JSON |
-| RFC 8414 | OAuth 2.0 Authorization Server Metadata |
-| RFC 8785 | JSON Canonicalization Scheme (JCS) |
-| RFC 8941 | Structured Field Values for HTTP |
-| RFC 9535 | JSONPath |
-| RFC 9728 | HTTP Resource Metadata |
-| ISO 3166-1 | Country codes |
-| ISO 4217 | Currency codes |
-| ISO 8601 | Date/time format |
-| E.164 | Phone number format |
-| PCI-DSS | Payment Card Industry Data Security Standard |
-| GDPR | General Data Protection Regulation |
-| CCPA | California Consumer Privacy Act |
-| OpenID RISC Profile 1.0 | Cross-Account Protection |
-| W3C DOMException | Error code mapping for EP binding |
-| JSON-RPC 2.0 | MCP and EP transport protocol |
+| Standard                | Usage                                        |
+| ----------------------- | -------------------------------------------- |
+| RFC 2119 / RFC 8174     | Requirement keywords (MUST, SHOULD, MAY)     |
+| RFC 3339                | Date/time format                             |
+| RFC 3986                | URI encoding                                 |
+| RFC 6749                | OAuth 2.0                                    |
+| RFC 7009                | Token Revocation                             |
+| RFC 7515                | JSON Web Signature (JWS)                     |
+| RFC 7617                | HTTP Basic Authentication                    |
+| RFC 7797                | JWS Detached Content                         |
+| RFC 8259                | JSON                                         |
+| RFC 8414                | OAuth 2.0 Authorization Server Metadata      |
+| RFC 8785                | JSON Canonicalization Scheme (JCS)           |
+| RFC 8941                | Structured Field Values for HTTP             |
+| RFC 9535                | JSONPath                                     |
+| RFC 9728                | HTTP Resource Metadata                       |
+| ISO 3166-1              | Country codes                                |
+| ISO 4217                | Currency codes                               |
+| ISO 8601                | Date/time format                             |
+| E.164                   | Phone number format                          |
+| PCI-DSS                 | Payment Card Industry Data Security Standard |
+| GDPR                    | General Data Protection Regulation           |
+| CCPA                    | California Consumer Privacy Act              |
+| OpenID RISC Profile 1.0 | Cross-Account Protection                     |
+| W3C DOMException        | Error code mapping for EP binding            |
+| JSON-RPC 2.0            | MCP and EP transport protocol                |
