@@ -66,15 +66,11 @@ CREATE TABLE IF NOT EXISTS tenants (
 );"
 
 echo "2. Upserting magento-e2e tenant..."
-run_psql "
-DELETE FROM tenants WHERE slug = 'magento-e2e' OR domain = 'localhost:${GATEWAY_PORT}';
-INSERT INTO tenants (slug, domain, platform, adapter_config)
-VALUES (
-  'magento-e2e',
-  'localhost:${GATEWAY_PORT}',
-  'magento',
-  '{\"storeUrl\": \"${MAGENTO_URL}\", \"apiKey\": \"${TOKEN}\"}'::jsonb
-);"
+run_psql "DELETE FROM tenants WHERE slug = 'magento-e2e' OR domain = 'localhost:${GATEWAY_PORT}';"
+
+ADAPTER_JSON=$(printf '{"storeUrl": "%s", "apiKey": "%s"}' "$MAGENTO_URL" "$TOKEN")
+INSERT_SQL="INSERT INTO tenants (slug, domain, platform, adapter_config) VALUES ('magento-e2e', 'localhost:${GATEWAY_PORT}', 'magento', \$\$${ADAPTER_JSON}\$\$::jsonb);"
+run_psql "$INSERT_SQL"
 
 REDIS_CONTAINER="${REDIS_CONTAINER:-ucp-middleware-redis-1}"
 
