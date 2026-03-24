@@ -59,20 +59,20 @@ echo ""
 
 # ── 1. Health check ────────────────────────────────────────────────────────
 echo "--- 1. Gateway health check ---"
-HEALTH=$(curl -sf "$GATEWAY_URL/health" | json_field ".get('status','?')")
+HEALTH=$(curl -s "$GATEWAY_URL/health" | json_field ".get('status','?')")
 assert_eq "GET /health returns ok" "ok" "$HEALTH"
 echo ""
 
 # ── 2. Discovery ───────────────────────────────────────────────────────────
 echo "--- 2. UCP profile discovery ---"
-PROFILE=$(curl -sf "$GATEWAY_URL/.well-known/ucp" -H "$AGENT_HEADER")
+PROFILE=$(curl -s "$GATEWAY_URL/.well-known/ucp" -H "$AGENT_HEADER")
 PROFILE_NAME=$(echo "$PROFILE" | json_field ".get('business',{}).get('name','?')")
 assert_not_empty "Profile has business name" "$PROFILE_NAME"
 echo ""
 
 # ── 3. Product search ─────────────────────────────────────────────────────
 echo "--- 3. Product search ---"
-SEARCH=$(curl -sf "$GATEWAY_URL/ucp/products?q=shoes" -H "$AGENT_HEADER")
+SEARCH=$(curl -s "$GATEWAY_URL/ucp/products?q=shoes" -H "$AGENT_HEADER")
 PRODUCT_ID=$(echo "$SEARCH" | python3 -c "
 import sys,json
 d=json.load(sys.stdin)
@@ -88,7 +88,7 @@ echo ""
 
 # ── 4. Create checkout session ─────────────────────────────────────────────
 echo "--- 4. Create checkout session ---"
-CREATE_RESP=$(curl -sf -X POST "$GATEWAY_URL/checkout-sessions" \
+CREATE_RESP=$(curl -s -X POST "$GATEWAY_URL/checkout-sessions" \
   -H "$AGENT_HEADER" -H "$CONTENT_TYPE" \
   -d "{\"line_items\": [{\"item\": {\"id\": \"$PRODUCT_ID\"}, \"quantity\": 1}]}")
 
@@ -103,7 +103,7 @@ echo ""
 
 # ── 5. Update with buyer + fulfillment ─────────────────────────────────────
 echo "--- 5. Update session (buyer + fulfillment) ---"
-UPDATE_RESP=$(curl -sf -X PUT "$GATEWAY_URL/checkout-sessions/$SESSION_ID" \
+UPDATE_RESP=$(curl -s -X PUT "$GATEWAY_URL/checkout-sessions/$SESSION_ID" \
   -H "$AGENT_HEADER" -H "$CONTENT_TYPE" \
   -d "{
     \"id\": \"$SESSION_ID\",
@@ -146,7 +146,7 @@ echo ""
 
 # ── 6. Complete checkout (place order) ─────────────────────────────────────
 echo "--- 6. Complete checkout (place order on Magento) ---"
-COMPLETE_RESP=$(curl -sf -X POST "$GATEWAY_URL/checkout-sessions/$SESSION_ID/complete" \
+COMPLETE_RESP=$(curl -s -X POST "$GATEWAY_URL/checkout-sessions/$SESSION_ID/complete" \
   -H "$AGENT_HEADER" -H "$CONTENT_TYPE" \
   -d '{
     "payment": {
@@ -169,7 +169,7 @@ echo ""
 
 # ── 7. Verify session is completed (GET) ──────────────────────────────────
 echo "--- 7. Verify session state ---"
-GET_RESP=$(curl -sf "$GATEWAY_URL/checkout-sessions/$SESSION_ID" -H "$AGENT_HEADER")
+GET_RESP=$(curl -s "$GATEWAY_URL/checkout-sessions/$SESSION_ID" -H "$AGENT_HEADER")
 GET_STATUS=$(echo "$GET_RESP" | json_field ".get('status','?')")
 assert_eq "GET session shows completed" "completed" "$GET_STATUS"
 echo ""
@@ -185,12 +185,12 @@ echo ""
 
 # ── 9. Cancel flow ─────────────────────────────────────────────────────────
 echo "--- 9. Cancel flow (separate session) ---"
-CANCEL_CREATE=$(curl -sf -X POST "$GATEWAY_URL/checkout-sessions" \
+CANCEL_CREATE=$(curl -s -X POST "$GATEWAY_URL/checkout-sessions" \
   -H "$AGENT_HEADER" -H "$CONTENT_TYPE" \
   -d "{\"line_items\": [{\"item\": {\"id\": \"$PRODUCT_ID\"}, \"quantity\": 1}]}")
 CANCEL_SID=$(echo "$CANCEL_CREATE" | json_field ".get('id','?')")
 
-CANCEL_RESP=$(curl -sf -X POST "$GATEWAY_URL/checkout-sessions/$CANCEL_SID/cancel" \
+CANCEL_RESP=$(curl -s -X POST "$GATEWAY_URL/checkout-sessions/$CANCEL_SID/cancel" \
   -H "$AGENT_HEADER")
 CANCEL_STATUS=$(echo "$CANCEL_RESP" | json_field ".get('status','?')")
 assert_eq "Cancel returns canceled" "canceled" "$CANCEL_STATUS"

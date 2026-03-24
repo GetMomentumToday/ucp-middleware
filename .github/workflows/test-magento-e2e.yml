@@ -83,10 +83,12 @@ jobs:
           PORT=3000 \
           SECRET_KEY="e2e_test_secret_key_32_characters_" \
           NODE_ENV=development \
-          LOG_LEVEL=error \
-          npx tsx apps/server/src/index.ts &
+          LOG_LEVEL=debug \
+          npx tsx apps/server/src/index.ts > /tmp/ucp-server.log 2>&1 &
           sleep 5
-          curl -sf http://localhost:3000/health || (echo "Gateway failed to start" && exit 1)
+          curl -sf http://localhost:3000/health || (echo "Gateway failed to start" && cat /tmp/ucp-server.log && exit 1)
+          echo "Gateway started. Testing profile endpoint..."
+          curl -s http://localhost:3000/.well-known/ucp -H "UCP-Agent: test/1.0" | head -200
 
       - name: Run E2E checkout test
         run: bash tests/e2e-magento/run-e2e-checkout.sh
@@ -96,10 +98,14 @@ jobs:
       - name: Collect logs on failure
         if: failure()
         run: |
-          echo "=== Magento logs ==="
-          docker logs platforms-magento-1 2>&1 | tail -50 || true
           echo "=== Gateway logs ==="
-          cat /tmp/ucp-server.log 2>/dev/null | tail -50 || true
+          cat /tmp/ucp-server.log 2>/dev/null | tail -100 || true
+          echo "=== Magento container logs ==="
+          docker logs platforms-magento-1 2>&1 | tail -30 || true
+          echo "=== Tenant in DB ==="
+          PGPASSWORD=ucp psql -h localhost -p 5433 -U ucp -d ucp -c "SELECT slug, domain, platform, adapter_config FROM tenants;" 2>/dev/null || true
+          echo "=== Test profile endpoint ==="
+          curl -s http://localhost:3000/.well-known/ucp -H "UCP-Agent: debug/1.0" 2>/dev/null | head -50 || true
 
       - name: Stop Magento
         if: always()
