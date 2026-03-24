@@ -151,60 +151,15 @@ export class ShopwareAdapter implements PlatformAdapter {
     return mapShopwareCartToTotals(cart, this.cachedCurrency);
   }
 
-  async placeOrder(cartId: string, payment: PaymentToken): Promise<Order> {
-    if (!payment.token) {
-      throw new AdapterError('INVALID_PAYMENT', 'Payment token is required', 402);
-    }
-
-    const instrument = parsePaymentInstrument(payment);
-
-    if (instrument.handlerId) {
-      await this.requestWithToken(cartId, 'PATCH', '/store-api/context', {
-        paymentMethodId: instrument.handlerId,
-      });
-    }
-
-    try {
-      const response = await this.requestWithToken<ShopwareOrderResponse>(
-        cartId,
-        'POST',
-        '/store-api/checkout/order',
-      );
-      return mapShopwareOrder(response, this.cachedCurrency);
-    } catch (error: unknown) {
-      if (error instanceof AdapterError) {
-        throw error;
-      }
-      throw new AdapterError(
-        'INVALID_PAYMENT',
-        error instanceof Error ? error.message : 'Payment processing failed',
-        402,
-      );
-    }
-  }
-
-  async getOrder(_id: string): Promise<Order> {
-    throw new AdapterError(
-      'PLATFORM_ERROR',
-      'Shopware Store API does not support retrieving orders by ID',
-      501,
-    );
-  }
-
-  /* ---------------------------------------------------------------------------
-   * Fulfillment — real shipping methods
-   * ------------------------------------------------------------------------- */
-
   async getFulfillmentOptions(
     cartId: string,
     destination: FulfillmentDestination,
   ): Promise<Fulfillment> {
     const countryIso = destination.address_country ?? destination.address?.address_country ?? '';
-    const countryId = await this.resolveCountryId(cartId, countryIso);
-
-    await this.requestWithToken(cartId, 'PATCH', '/store-api/context', {
-      countryId,
-    });
+    if (countryIso) {
+      const countryId = await this.resolveCountryId(cartId, countryIso);
+      await this.requestWithToken(cartId, 'PATCH', '/store-api/context', { countryId });
+    }
 
     const response = await this.requestWithToken<ShopwareShippingMethodListResponse>(
       cartId,
@@ -244,14 +199,8 @@ export class ShopwareAdapter implements PlatformAdapter {
   }
 
   async setShippingMethod(cartId: string, shippingMethodId: string): Promise<void> {
-    await this.requestWithToken(cartId, 'PATCH', '/store-api/context', {
-      shippingMethodId,
-    });
+    await this.requestWithToken(cartId, 'PATCH', '/store-api/context', { shippingMethodId });
   }
-
-  /* ---------------------------------------------------------------------------
-   * Discount — promotion codes
-   * ------------------------------------------------------------------------- */
 
   async applyCoupon(cartId: string, code: string): Promise<Cart> {
     const response = await this.requestWithToken<ShopwareCartResponse>(
@@ -271,6 +220,40 @@ export class ShopwareAdapter implements PlatformAdapter {
       { code },
     );
     return mapShopwareCart(response, this.cachedCurrency);
+  }
+
+  async placeOrder(cartId: string, payment: PaymentToken): Promise<Order> {
+    if (payment.provider) {
+      try {
+        await this.requestWithToken(cartId, 'PATCH', '/store-api/context', {
+          paymentMethodId: payment.provider,
+        });
+      } catch (err: unknown) {
+        if (err instanceof AdapterError) {
+          throw new AdapterError(
+            'INVALID_PAYMENT',
+            `Unsupported payment method: ${payment.provider}`,
+            402,
+          );
+        }
+        throw err;
+      }
+    }
+
+    const response = await this.requestWithToken<ShopwareOrderResponse>(
+      cartId,
+      'POST',
+      '/store-api/checkout/order',
+    );
+    return mapShopwareOrder(response, this.cachedCurrency);
+  }
+
+  async getOrder(_id: string): Promise<Order> {
+    throw new AdapterError(
+      'PLATFORM_ERROR',
+      'Shopware Store API does not support retrieving orders by ID',
+      501,
+    );
   }
 
   private buildHeaders(): Record<string, string> {
@@ -388,17 +371,4 @@ function buildShippingAddressPayload(
     zipcode: ctx.shipping_address.postal_code ?? '',
     countryId,
   };
-}
-
-interface PaymentInstrument {
-  readonly handlerId: string | undefined;
-}
-
-function parsePaymentInstrument(payment: PaymentToken): PaymentInstrument {
-  try {
-    const parsed = JSON.parse(payment.token) as { handler_id?: string };
-    return { handlerId: parsed.handler_id };
-  } catch {
-    return { handlerId: undefined };
-  }
 }

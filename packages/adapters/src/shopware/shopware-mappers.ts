@@ -133,11 +133,19 @@ function sumPromotionDiscounts(response: ShopwareCartResponse): number {
 
 export function mapShopwareShippingMethod(method: ShopwareShippingMethod): FulfillmentOption {
   const label = method.translated?.name ?? method.name ?? method.id;
-  const firstPrice = method.prices[0]?.currencyPrice?.[0];
-  const amountCents = firstPrice ? grossPriceToCents(firstPrice.gross) : 0;
+  const amountCents = extractShippingMethodPrice(method);
   return {
     id: method.id,
     title: label,
     totals: [{ type: 'fulfillment', amount: amountCents }],
   };
+}
+
+function extractShippingMethodPrice(method: ShopwareShippingMethod): number {
+  const firstPrice = method.prices?.[0];
+  if (!firstPrice) return 0;
+  const currencyGross = firstPrice.currencyPrice?.[0];
+  if (currencyGross) return grossPriceToCents(currencyGross.gross);
+  if (firstPrice.price !== undefined) return grossPriceToCents(firstPrice.price);
+  return 0;
 }
