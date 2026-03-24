@@ -1,10 +1,11 @@
-import type { Cart, LineItem, Order, Total } from '@ucp-gateway/core';
+import type { Cart, FulfillmentOption, LineItem, Order, Total } from '@ucp-gateway/core';
 import type { Product } from '@ucp-gateway/core';
 import type {
   ShopwareCartLineItem,
   ShopwareCartResponse,
   ShopwareOrderResponse,
   ShopwareProduct,
+  ShopwareShippingMethod,
 } from './shopware-types.js';
 import { grossPriceToCents } from '../shared/price.js';
 
@@ -73,10 +74,19 @@ export function mapShopwareCartToTotals(
   response: ShopwareCartResponse,
   _currency: string,
 ): readonly Total[] {
+  const discountCents = sumPromotionDiscounts(response);
   const taxCents = sumCalculatedTaxes(response);
-  return [
+  const baseTotals: readonly Total[] = [
     { type: 'subtotal', amount: grossPriceToCents(response.price.positionPrice) },
     { type: 'fulfillment', amount: computeShippingCents(response), display_text: 'Shipping' },
+  ];
+  const discountTotals: readonly Total[] =
+    discountCents !== 0
+      ? [{ type: 'discount', amount: discountCents, display_text: 'Promotion' }]
+      : [];
+  return [
+    ...baseTotals,
+    ...discountTotals,
     { type: 'tax', amount: taxCents },
     { type: 'total', amount: grossPriceToCents(response.price.totalPrice) },
   ];
@@ -113,4 +123,21 @@ function mapOrderStatus(technicalName: string | undefined): Order['status'] {
     default:
       return 'pending';
   }
+}
+
+function sumPromotionDiscounts(response: ShopwareCartResponse): number {
+  return response.lineItems
+    .filter((item) => item.type === 'promotion')
+    .reduce((sum, item) => sum + grossPriceToCents(item.price?.totalPrice ?? 0), 0);
+}
+
+export function mapShopwareShippingMethod(method: ShopwareShippingMethod): FulfillmentOption {
+  const label = method.translated?.name ?? method.name ?? method.id;
+  const firstPrice = method.prices[0]?.currencyPrice?.[0];
+  const amountCents = firstPrice ? grossPriceToCents(firstPrice.gross) : 0;
+  return {
+    id: method.id,
+    title: label,
+    totals: [{ type: 'fulfillment', amount: amountCents }],
+  };
 }
