@@ -28,10 +28,6 @@ function generateAddressId(dest: FulfillmentDestination): string {
   return `addr_${hash}`;
 }
 
-function findCustomerByEmail(_email: string | undefined): string | undefined {
-  return undefined;
-}
-
 function getStoredAddresses(_email: string | undefined): readonly FulfillmentDestination[] {
   return [];
 }
