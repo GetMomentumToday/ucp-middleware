@@ -35,6 +35,33 @@ export async function httpPost<T>(
   return handleResponse<T>(response);
 }
 
+export async function httpPut<T>(
+  config: HttpClientConfig,
+  path: string,
+  body: unknown,
+): Promise<T> {
+  const url = `${config.baseUrl}${path}`;
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers: { ...config.headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(config.timeoutMs ?? DEFAULT_TIMEOUT_MS),
+  });
+
+  return handleResponse<T>(response);
+}
+
+export async function httpDelete<T>(config: HttpClientConfig, path: string): Promise<T> {
+  const url = `${config.baseUrl}${path}`;
+  const response = await fetch(url, {
+    method: 'DELETE',
+    headers: config.headers,
+    signal: AbortSignal.timeout(config.timeoutMs ?? DEFAULT_TIMEOUT_MS),
+  });
+
+  return handleResponse<T>(response);
+}
+
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const text = await response.text();
