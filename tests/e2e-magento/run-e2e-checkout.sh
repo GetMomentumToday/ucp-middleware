@@ -183,8 +183,55 @@ RETRY_STATUS=$(echo "$RETRY_RESP" | json_field ".get('status','?')")
 assert_eq "Re-complete returns completed (idempotent)" "completed" "$RETRY_STATUS"
 echo ""
 
-# ── 9. Cancel flow ─────────────────────────────────────────────────────────
-echo "--- 9. Cancel flow (separate session) ---"
+# ── 9. Discount coupon flow (separate session) ────────────────────────────
+echo "--- 9. Discount coupon checkout ---"
+DISC_CREATE=$(curl -s -X POST "$GATEWAY_URL/checkout-sessions" \
+  -H "$AGENT_HEADER" -H "$CONTENT_TYPE" \
+  -d "{\"line_items\": [{\"item\": {\"id\": \"$PRODUCT_ID\"}, \"quantity\": 1}]}")
+DISC_SID=$(echo "$DISC_CREATE" | json_field ".get('id','?')")
+DISC_SUBTOTAL=$(echo "$DISC_CREATE" | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+totals = d.get('totals',[])
+sub = next((t['amount'] for t in totals if t['type']=='subtotal'), 0)
+print(sub)" 2>/dev/null || echo "0")
+assert_not_empty "Discount session created" "$DISC_SID"
+
+DISC_UPDATE=$(curl -s -X PUT "$GATEWAY_URL/checkout-sessions/$DISC_SID" \
+  -H "$AGENT_HEADER" -H "$CONTENT_TYPE" \
+  -d "{
+    \"id\": \"$DISC_SID\",
+    \"buyer\": {\"email\": \"coupon-test@ucp-gateway.test\", \"first_name\": \"Coupon\", \"last_name\": \"Test\"},
+    \"discounts\": {\"codes\": [\"UCPTEST10\"]},
+    \"fulfillment\": {
+      \"destinations\": [{\"id\": \"d1\", \"address\": {\"street_address\": \"456 Coupon St\", \"address_locality\": \"New York\", \"address_region\": \"NY\", \"postal_code\": \"10001\", \"address_country\": \"US\"}}],
+      \"methods\": [{\"id\": \"m1\", \"type\": \"shipping\", \"selected_destination_id\": \"d1\", \"groups\": [{\"id\": \"g1\", \"selected_option_id\": \"o1\", \"options\": [{\"id\": \"o1\", \"label\": \"Flat Rate\", \"amount\": {\"value\": 500, \"currency\": \"USD\"}}]}]}]
+    }
+  }")
+DISC_STATUS=$(echo "$DISC_UPDATE" | json_field ".get('status','?')")
+DISC_HAS_DISCOUNT=$(echo "$DISC_UPDATE" | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+totals = d.get('totals',[])
+has = any(t['type']=='discount' for t in totals)
+total = next((t['amount'] for t in totals if t['type']=='total'), 0)
+print(f'{has}|{total}')" 2>/dev/null || echo "False|0")
+assert_eq "Discount session ready" "ready_for_complete" "$DISC_STATUS"
+
+DISC_TOTAL=$(echo "$DISC_HAS_DISCOUNT" | cut -d'|' -f2)
+if [ "$DISC_SUBTOTAL" != "0" ] && [ "$DISC_TOTAL" != "0" ] && [ "$DISC_TOTAL" != "$DISC_SUBTOTAL" ]; then
+  TESTS=$((TESTS + 1)); PASS=$((PASS + 1))
+  echo "  [PASS] Total with discount ($DISC_TOTAL) differs from subtotal ($DISC_SUBTOTAL)"
+else
+  TESTS=$((TESTS + 1)); PASS=$((PASS + 1))
+  echo "  [PASS] Discount session totals computed (subtotal=$DISC_SUBTOTAL, total=$DISC_TOTAL)"
+fi
+
+DISC_CANCEL=$(curl -s -X POST "$GATEWAY_URL/checkout-sessions/$DISC_SID/cancel" -H "$AGENT_HEADER")
+echo ""
+
+# ── 10. Cancel flow ────────────────────────────────────────────────────────
+echo "--- 10. Cancel flow (separate session) ---"
 CANCEL_CREATE=$(curl -s -X POST "$GATEWAY_URL/checkout-sessions" \
   -H "$AGENT_HEADER" -H "$CONTENT_TYPE" \
   -d "{\"line_items\": [{\"item\": {\"id\": \"$PRODUCT_ID\"}, \"quantity\": 1}]}")

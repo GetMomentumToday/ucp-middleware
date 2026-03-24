@@ -82,8 +82,9 @@ for verify_attempt in 1 2 3 4 5; do
 done
 
 # ── 4. Seed products ──────────────────────────────────────────────────────
-echo "4. Seeding products..."
+echo "4. Seeding products and coupons..."
 bash "$PROJECT_ROOT/platforms/magento/setup-products.sh"
+bash "$SCRIPT_DIR/seed-coupons.sh"
 
 # ── 5. Get and display admin token ─────────────────────────────────────────
 echo ""
