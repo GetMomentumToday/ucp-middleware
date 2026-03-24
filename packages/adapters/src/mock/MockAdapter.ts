@@ -49,9 +49,7 @@ export class MockAdapter implements PlatformAdapter {
   }
 
   async getSupportedPaymentMethods(): Promise<readonly PaymentHandler[]> {
-    return [
-      { id: 'mock', name: 'Mock Payment', type: 'card' },
-    ];
+    return [{ id: 'mock', name: 'Mock Payment', type: 'card' }];
   }
 
   async searchProducts(query: SearchQuery): Promise<readonly Product[]> {

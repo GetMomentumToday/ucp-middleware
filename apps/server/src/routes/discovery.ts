@@ -16,7 +16,9 @@ function toUCPPaymentHandler(handler: PaymentHandler): UCPPaymentHandler {
   };
 }
 
-async function resolvePaymentHandlers(adapter: PlatformAdapter): Promise<readonly UCPPaymentHandler[]> {
+async function resolvePaymentHandlers(
+  adapter: PlatformAdapter,
+): Promise<readonly UCPPaymentHandler[]> {
   if (!adapter.getSupportedPaymentMethods) return [];
   try {
     const methods = await adapter.getSupportedPaymentMethods();

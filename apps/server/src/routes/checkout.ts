@@ -26,7 +26,9 @@ function getTenantLinkSettings(request: FastifyRequest): TenantLinkSettings | un
   return undefined;
 }
 
-async function resolvePaymentHandlers(adapter: PlatformAdapter): Promise<readonly PaymentHandler[]> {
+async function resolvePaymentHandlers(
+  adapter: PlatformAdapter,
+): Promise<readonly PaymentHandler[]> {
   if (!adapter.getSupportedPaymentMethods) return [];
   try {
     return await adapter.getSupportedPaymentMethods();
@@ -171,9 +173,7 @@ export async function checkoutRoutes(app: FastifyInstance): Promise<void> {
         return sendSessionError(reply, 'missing', `Session not found: ${request.params.id}`, 404);
 
       const options = await buildResponseOptions(request);
-      return reply
-        .status(200)
-        .send(toPublicCheckoutResponse(session, options));
+      return reply.status(200).send(toPublicCheckoutResponse(session, options));
     },
   );
 
