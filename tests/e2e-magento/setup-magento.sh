@@ -97,22 +97,24 @@ bash "$PROJECT_ROOT/platforms/magento/setup-products.sh"
 # ── 5. Get and display admin token ─────────────────────────────────────────
 echo ""
 echo "5. Generating admin token..."
+TOKEN=""
 for attempt in 1 2 3; do
   RAW_TOKEN=$(curl -s -X POST "${MAGENTO_URL}/rest/V1/integration/admin/token" \
     -H 'Content-Type: application/json' \
     -H 'Accept: application/json' \
-    -d '{"username":"admin","password":"magentorocks1"}')
-  TOKEN=$(echo "$RAW_TOKEN" | tr -d '"\n\r ' | grep -oE '[a-zA-Z0-9]{20,}' | head -1)
+    -d '{"username":"admin","password":"magentorocks1"}' || true)
+  TOKEN=$(echo "$RAW_TOKEN" | tr -d '"\n\r ' | grep -oE '[a-zA-Z0-9]{20,}' || true)
+  TOKEN=$(echo "$TOKEN" | head -1)
   if [ -n "$TOKEN" ]; then
     break
   fi
-  echo "   Attempt $attempt failed. Response: $(echo "$RAW_TOKEN" | head -1 | cut -c1-200)"
+  echo "   Attempt $attempt: no token found in response: $(echo "$RAW_TOKEN" | head -1 | cut -c1-200)"
   sleep 5
 done
 
 if [ -z "$TOKEN" ]; then
-  echo "ERROR: Failed to get admin token after 3 attempts. Raw response:"
-  echo "$RAW_TOKEN" | head -10
+  echo "ERROR: Failed to get admin token after 3 attempts."
+  echo "Last raw response: $RAW_TOKEN"
   exit 1
 fi
 
