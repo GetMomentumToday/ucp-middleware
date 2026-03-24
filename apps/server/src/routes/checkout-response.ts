@@ -3,17 +3,45 @@ import type { CheckoutSession, CheckoutLink } from '@ucp-gateway/core';
 
 const UCP_VERSION = '2026-01-23';
 
-const DEFAULT_LINKS: readonly CheckoutLink[] = [
-  { type: 'privacy_policy', url: 'https://example.com/privacy' },
-  { type: 'terms_of_service', url: 'https://example.com/terms' },
-];
+/** Settings shape expected on the tenant object (subset of tenant.settings). */
+export interface TenantLinkSettings {
+  readonly privacy_policy_url?: string;
+  readonly terms_of_service_url?: string;
+}
+
+/**
+ * Resolve privacy/terms links from tenant settings, then env vars,
+ * then example.com only in non-production mode.
+ */
+function resolveDefaultLinks(tenantSettings?: TenantLinkSettings): readonly CheckoutLink[] {
+  const nodeEnv = process.env['NODE_ENV'] ?? 'development';
+  const devFallback = nodeEnv !== 'production';
+
+  const privacyUrl =
+    tenantSettings?.privacy_policy_url ||
+    process.env['PRIVACY_POLICY_URL'] ||
+    (devFallback ? 'https://example.com/privacy' : undefined);
+
+  const termsUrl =
+    tenantSettings?.terms_of_service_url ||
+    process.env['TERMS_OF_SERVICE_URL'] ||
+    (devFallback ? 'https://example.com/terms' : undefined);
+
+  const links: CheckoutLink[] = [];
+  if (privacyUrl) links.push({ type: 'privacy_policy', url: privacyUrl });
+  if (termsUrl) links.push({ type: 'terms_of_service', url: termsUrl });
+  return links;
+}
 
 /**
  * Build a raw response object from an internal CheckoutSession.
  * This shape is aligned with `ExtendedCheckoutResponseSchema` from @ucp-js/sdk.
  */
-function buildRawResponse(session: CheckoutSession): Record<string, unknown> {
-  const links = session.links.length > 0 ? session.links : DEFAULT_LINKS;
+function buildRawResponse(
+  session: CheckoutSession,
+  tenantSettings?: TenantLinkSettings,
+): Record<string, unknown> {
+  const links = session.links.length > 0 ? session.links : resolveDefaultLinks(tenantSettings);
 
   const status = CheckoutResponseStatusSchema.safeParse(session.status);
 
@@ -80,8 +108,11 @@ function buildRawResponse(session: CheckoutSession): Record<string, unknown> {
  * If validation fails we still return the raw response (graceful degradation)
  * but log a warning so we can fix the mismatch.
  */
-export function toPublicCheckoutResponse(session: CheckoutSession): Record<string, unknown> {
-  const raw = buildRawResponse(session);
+export function toPublicCheckoutResponse(
+  session: CheckoutSession,
+  tenantSettings?: TenantLinkSettings,
+): Record<string, unknown> {
+  const raw = buildRawResponse(session, tenantSettings);
 
   const result = ExtendedCheckoutResponseSchema.safeParse(raw);
   if (!result.success) {
