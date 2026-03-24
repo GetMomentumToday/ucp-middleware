@@ -95,12 +95,14 @@ bash "$PROJECT_ROOT/platforms/magento/setup-products.sh"
 # ── 5. Get and display admin token ─────────────────────────────────────────
 echo ""
 echo "5. Generating admin token..."
-TOKEN=$(curl -s -X POST "${MAGENTO_URL}/rest/V1/integration/admin/token" \
+RAW_TOKEN=$(curl -s -X POST "${MAGENTO_URL}/rest/V1/integration/admin/token" \
   -H 'Content-Type: application/json' \
-  -d '{"username":"admin","password":"magentorocks1"}' | tr -d '"')
+  -d '{"username":"admin","password":"magentorocks1"}')
+TOKEN=$(echo "$RAW_TOKEN" | tr -d '"' | grep -oE '^[a-zA-Z0-9]+$' | tail -1)
 
 if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
-  echo "ERROR: Failed to get admin token."
+  echo "ERROR: Failed to get admin token. Raw response:"
+  echo "$RAW_TOKEN" | head -5
   exit 1
 fi
 

@@ -24,15 +24,18 @@ REDIS_HOST="${REDIS_HOST:-localhost}"
 REDIS_PORT="${REDIS_PORT:-6380}"
 
 if [ -f "$SCRIPT_DIR/.magento-token" ]; then
-  TOKEN=$(cat "$SCRIPT_DIR/.magento-token")
-else
-  TOKEN=$(curl -s -X POST "${MAGENTO_URL}/rest/V1/integration/admin/token" \
-    -H 'Content-Type: application/json' \
-    -d '{"username":"admin","password":"magentorocks1"}' | tr -d '"')
+  TOKEN=$(cat "$SCRIPT_DIR/.magento-token" | grep -oE '^[a-zA-Z0-9]+$' | tail -1)
 fi
 
 if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
-  echo "ERROR: No Magento token available."
+  RAW=$(curl -s -X POST "${MAGENTO_URL}/rest/V1/integration/admin/token" \
+    -H 'Content-Type: application/json' \
+    -d '{"username":"admin","password":"magentorocks1"}')
+  TOKEN=$(echo "$RAW" | tr -d '"' | grep -oE '^[a-zA-Z0-9]+$' | tail -1)
+fi
+
+if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+  echo "ERROR: No valid Magento token available."
   exit 1
 fi
 
