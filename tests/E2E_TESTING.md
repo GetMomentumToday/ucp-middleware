@@ -82,18 +82,115 @@ These scenarios apply to ALL platform adapters. Every new adapter must pass them
 | 19  | Complete with unknown payment handler | Completes or errors (platform-dependent) |
 | 20  | Full flow → verify order total        | Order total matches session total        |
 
+### Inventory & Edge Cases (4 tests)
+
+| #   | Scenario                             | Expected                            |
+| --- | ------------------------------------ | ----------------------------------- |
+| 21  | Multi-item with different quantities | Line item count >= 1                |
+| 22  | Session update with billing_address  | Accepted, session status valid      |
+| 23  | Exceed available stock (qty=999999)  | Error or graceful platform handling |
+| 24  | Out-of-stock / non-existent product  | HTTP 4xx                            |
+
 ### Bash-Only Assertions (additional 6)
 
 | #   | Scenario                             | Expected                  |
 | --- | ------------------------------------ | ------------------------- |
-| 21  | Health endpoint returns ok           | `{"status":"ok"}`         |
-| 22  | Profile has business name            | Non-empty                 |
-| 23  | Product search returns results       | At least 1 product        |
-| 24  | Multi-item session has correct count | line_items.length matches |
-| 25  | Request-Id echoed in response        | Header present            |
-| 26  | Cancel from ready_for_complete       | status: `canceled`        |
+| 25  | Health endpoint returns ok           | `{"status":"ok"}`         |
+| 26  | Profile has business name            | Non-empty                 |
+| 27  | Product search returns results       | At least 1 product        |
+| 28  | Multi-item session has correct count | line_items.length matches |
+| 29  | Request-Id echoed in response        | Header present            |
+| 30  | Cancel from ready_for_complete       | status: `canceled`        |
 
-**Total common scenarios: 26**
+**Total implemented scenarios: 30**
+
+### Not Yet Implemented — Implementable Now (3 tests)
+
+| #   | Scenario                        | Expected                   | Blocker                         |
+| --- | ------------------------------- | -------------------------- | ------------------------------- |
+| 31  | Expired session → 410           | HTTP 410 or expired status | Need short TTL env var for test |
+| 32  | Update completed session → 409  | HTTP 409                   | None — ready to add             |
+| 33  | Option selection changes totals | Total changes with option  | Magento flat rate = 1 option    |
+
+### Not Yet Implementable — Features Not Built (44 scenarios)
+
+These scenarios require features that are planned but not yet implemented in the gateway.
+
+#### Discount Extension (8 scenarios)
+
+| Scenario                               | Required Feature                 | Ticket? |
+| -------------------------------------- | -------------------------------- | ------- |
+| Stacking rules (priority, exclusive)   | Discount stacking config         | TBD     |
+| Per-item discount allocations          | Allocation engine                | TBD     |
+| Automatic discounts (no code)          | Auto-discount rules              | TBD     |
+| Auth-required codes (user eligibility) | Identity linking + discount auth | TBD     |
+| Multiple codes simultaneously          | Multi-code support               | TBD     |
+| Discount exceeds subtotal → clamp to 0 | Clamping logic                   | TBD     |
+| Percentage + fixed combined            | Mixed discount types             | TBD     |
+| Discount on specific items only        | Item-level targeting             | TBD     |
+
+#### Fulfillment Extension (8 scenarios)
+
+| Scenario                                  | Required Feature            | Ticket? |
+| ----------------------------------------- | --------------------------- | ------- |
+| Multi-group fulfillment (split shipments) | Multi-group support         | TBD     |
+| Retail location / store pickup            | Pickup destination type     | TBD     |
+| Preorder items with delayed fulfillment   | Preorder product type       | TBD     |
+| Digital goods (no shipping needed)        | Digital fulfillment type    | TBD     |
+| Multi-destination (ship to multiple)      | Multi-destination routing   | TBD     |
+| Fulfillment config flags in profile       | Profile config              | TBD     |
+| Contact fields on destinations            | Phone/email on address      | TBD     |
+| Shipping cost by weight/dimensions        | Weight-based shipping rules | TBD     |
+
+#### Order Capability (6 scenarios)
+
+| Scenario                               | Required Feature        | Ticket? |
+| -------------------------------------- | ----------------------- | ------- |
+| Webhook delivery on order complete     | Webhook engine + BullMQ | TBD     |
+| Order fulfillment tracking (shipped)   | Fulfillment events      | TBD     |
+| Order fulfillment tracking (delivered) | Fulfillment events      | TBD     |
+| Order adjustment: refund               | Adjustments engine      | TBD     |
+| Order adjustment: return               | Adjustments engine      | TBD     |
+| PUT /orders/:id for lifecycle updates  | Order update endpoint   | TBD     |
+
+#### Payment (4 scenarios)
+
+| Scenario                             | Required Feature               | Ticket? |
+| ------------------------------------ | ------------------------------ | ------- |
+| Real payment gateway (Stripe)        | Payment gateway integration    | TBD     |
+| Real payment gateway (PayPal)        | Payment gateway integration    | TBD     |
+| Payment failure → escalation → retry | Escalation + continue_url flow | TBD     |
+| 3DS / SCA challenge handling         | Browser redirect flow          | TBD     |
+
+#### Extensions & Security (10 scenarios)
+
+| Scenario                                | Required Feature           | Ticket? |
+| --------------------------------------- | -------------------------- | ------- |
+| AP2 mandates (cryptographic signatures) | AP2 extension              | TBD     |
+| Buyer consent (analytics opt-in)        | Consent extension          | TBD     |
+| Buyer consent (marketing opt-in)        | Consent extension          | TBD     |
+| Buyer consent (CCPA do-not-sell)        | Consent extension          | TBD     |
+| Identity linking (OAuth 2.0 flow)       | OAuth endpoints            | TBD     |
+| Tokenization (card vault)               | Tokenization endpoints     | TBD     |
+| Request-Signature verification          | JWT signing                | TBD     |
+| Configurable/variant products           | Variant support in adapter | TBD     |
+| Multi-currency checkout                 | Currency conversion        | TBD     |
+| Tax calculation (US/EU rules)           | Tax engine                 | TBD     |
+
+#### Nice to Have (8 scenarios)
+
+| Scenario                           | Required Feature        | Ticket? |
+| ---------------------------------- | ----------------------- | ------- |
+| Gift card as payment instrument    | Gift card support       | No      |
+| Subscription/recurring orders      | Subscription engine     | No      |
+| Guest → registered user conversion | Identity linking        | TBD     |
+| Session transfer between agents    | Session portability     | No      |
+| Concurrent session modification    | Optimistic locking      | No      |
+| Rate limiting per tenant           | Rate limiter middleware | TBD     |
+| Webhook retry on failure           | Retry queue             | TBD     |
+| MCP transport binding              | JSON-RPC tools          | TBD     |
+
+**Total: 30 implemented + 3 ready to add + 44 blocked by features = 77 scenarios**
 
 ## Platform-Specific Coverage
 

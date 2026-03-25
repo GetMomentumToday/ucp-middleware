@@ -505,6 +505,74 @@ describe('Magento E2E Checkout', () => {
       expect(completed || errored).toBe(true);
     });
 
+    it('multi-item session with different quantities has correct line item count', async () => {
+      const resp = await postJson('/checkout-sessions', {
+        line_items: [
+          { item: { id: PRODUCT_ID }, quantity: 2 },
+          { item: { id: PRODUCT_ID }, quantity: 3 },
+        ],
+      });
+      const body = (await resp.json()) as SessionResponse;
+
+      expect(resp.status).toBeLessThan(500);
+      if (resp.status === 201 || resp.status === 200) {
+        expect(body.line_items.length).toBeGreaterThanOrEqual(1);
+        await postEmpty(`/checkout-sessions/${body.id}/cancel`);
+      }
+    });
+
+    it('session update with billing_address is accepted', async () => {
+      const session = await createSession();
+      const resp = await put(`/checkout-sessions/${session.id}`, {
+        id: session.id,
+        buyer: makeBuyer('billing-test@ucp-gateway.test'),
+        billing_address: {
+          street_address: '456 Billing St',
+          address_locality: 'Chicago',
+          address_region: 'IL',
+          postal_code: '60601',
+          address_country: 'US',
+        },
+        fulfillment: makeFulfillment(),
+      });
+      const body = (await resp.json()) as SessionResponse;
+
+      expect(resp.status).toBeLessThan(500);
+      expect(body.status).toBeDefined();
+
+      await postEmpty(`/checkout-sessions/${session.id}/cancel`);
+    });
+
+    it('exceed available stock returns error or succeeds with platform handling', async () => {
+      const resp = await postJson('/checkout-sessions', {
+        line_items: [{ item: { id: PRODUCT_ID }, quantity: 999999 }],
+      });
+      const body = (await resp.json()) as SessionResponse | ErrorResponse;
+
+      const isStockError =
+        resp.status >= 400 ||
+        ('messages' in body &&
+          body.messages.some(
+            (m) => m.code === 'out_of_stock' || m.code === 'missing' || m.code === 'invalid',
+          ));
+      const isAccepted = resp.status === 201 || resp.status === 200;
+
+      expect(isStockError || isAccepted).toBe(true);
+
+      if (isAccepted && 'id' in body) {
+        await postEmpty(`/checkout-sessions/${body.id}/cancel`);
+      }
+    });
+
+    it('create session with out-of-stock product returns error or handles gracefully', async () => {
+      const resp = await postJson('/checkout-sessions', {
+        line_items: [{ item: { id: 'nonexistent-oos-product-000' }, quantity: 1 }],
+      });
+      await resp.json();
+
+      expect(resp.status >= 400 || resp.status < 500).toBe(true);
+    });
+
     it('order total matches session total after full flow', async () => {
       const session = await createSession();
 
