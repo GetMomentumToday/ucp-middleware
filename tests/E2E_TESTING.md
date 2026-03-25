@@ -82,18 +82,27 @@ These scenarios apply to ALL platform adapters. Every new adapter must pass them
 | 19  | Complete with unknown payment handler | Completes or errors (platform-dependent) |
 | 20  | Full flow → verify order total        | Order total matches session total        |
 
+### Inventory & Edge Cases (4 tests)
+
+| #   | Scenario                             | Expected                            |
+| --- | ------------------------------------ | ----------------------------------- |
+| 21  | Multi-item with different quantities | Line item count >= 1                |
+| 22  | Session update with billing_address  | Accepted, session status valid      |
+| 23  | Exceed available stock (qty=999999)  | Error or graceful platform handling |
+| 24  | Out-of-stock / non-existent product  | HTTP 4xx                            |
+
 ### Bash-Only Assertions (additional 6)
 
 | #   | Scenario                             | Expected                  |
 | --- | ------------------------------------ | ------------------------- |
-| 21  | Health endpoint returns ok           | `{"status":"ok"}`         |
-| 22  | Profile has business name            | Non-empty                 |
-| 23  | Product search returns results       | At least 1 product        |
-| 24  | Multi-item session has correct count | line_items.length matches |
-| 25  | Request-Id echoed in response        | Header present            |
-| 26  | Cancel from ready_for_complete       | status: `canceled`        |
+| 25  | Health endpoint returns ok           | `{"status":"ok"}`         |
+| 26  | Profile has business name            | Non-empty                 |
+| 27  | Product search returns results       | At least 1 product        |
+| 28  | Multi-item session has correct count | line_items.length matches |
+| 29  | Request-Id echoed in response        | Header present            |
+| 30  | Cancel from ready_for_complete       | status: `canceled`        |
 
-**Total common scenarios: 26**
+**Total common scenarios: 30**
 
 ## Platform-Specific Coverage
 

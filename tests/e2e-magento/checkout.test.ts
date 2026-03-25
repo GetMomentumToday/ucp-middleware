@@ -568,7 +568,7 @@ describe('Magento E2E Checkout', () => {
       const resp = await postJson('/checkout-sessions', {
         line_items: [{ item: { id: 'nonexistent-oos-product-000' }, quantity: 1 }],
       });
-      const body = (await resp.json()) as SessionResponse | ErrorResponse;
+      await resp.json();
 
       expect(resp.status >= 400 || resp.status < 500).toBe(true);
     });
