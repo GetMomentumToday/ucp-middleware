@@ -25,10 +25,9 @@ function makeLineItemTotals(subtotal: number): readonly Total[] {
   ];
 }
 
-function makeLineItem(overrides: {
-  id?: string;
-  subtotal: number;
-}): { readonly totals: readonly Total[] } {
+function makeLineItem(overrides: { id?: string; subtotal: number }): {
+  readonly totals: readonly Total[];
+} {
   return { totals: makeLineItemTotals(overrides.subtotal) };
 }
 
