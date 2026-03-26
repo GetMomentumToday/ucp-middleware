@@ -34,7 +34,22 @@ interface SessionResponse {
   };
   readonly order?: {
     readonly id: string;
+    readonly permalink_url?: string;
+    readonly checkout_id?: string;
     readonly totals?: readonly TotalEntry[];
+    readonly ucp?: {
+      readonly version: string;
+      readonly capabilities: readonly { readonly name: string; readonly version: string }[];
+    };
+    readonly line_items?: readonly {
+      readonly id: string;
+      readonly quantity: { readonly total: number; readonly fulfilled: number } | number;
+      readonly status?: string;
+    }[];
+    readonly fulfillment?: {
+      readonly expectations: readonly unknown[];
+      readonly events: readonly unknown[];
+    } | null;
   };
   readonly fulfillment?: {
     readonly methods: readonly {
@@ -246,6 +261,31 @@ describe('Magento E2E Checkout', () => {
         (resp.status === 200 && 'status' in body && body.status === 'completed') ||
         resp.status === 409;
       expect(isIdempotent).toBe(true);
+    });
+  });
+
+  describe('Order spec compliance', () => {
+    it('checkout complete response has minimal order (id + permalink_url only)', async () => {
+      const completed = await createCompletedSession();
+
+      expect(completed.order).toBeDefined();
+      expect(completed.order?.id).toBeTruthy();
+      expect(completed.order?.permalink_url).toBeTruthy();
+      expect(completed.order?.totals).toBeUndefined();
+      expect(completed.order?.line_items).toBeUndefined();
+      expect(completed.order?.fulfillment).toBeUndefined();
+    });
+
+    it('GET completed session also returns minimal order', async () => {
+      const completed = await createCompletedSession();
+      const resp = await get(`/checkout-sessions/${completed.id}`);
+      const body = (await resp.json()) as SessionResponse;
+
+      expect(resp.status).toBe(200);
+      expect(body.status).toBe('completed');
+      expect(body.order).toBeDefined();
+      expect(body.order?.id).toBeTruthy();
+      expect(body.order?.permalink_url).toBeTruthy();
     });
   });
 

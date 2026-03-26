@@ -51,7 +51,7 @@ interface SessionResponse {
   };
   readonly order?: {
     readonly id: string;
-    readonly totals?: readonly TotalEntry[];
+    readonly permalink_url?: string;
   };
   readonly fulfillment?: {
     readonly methods: readonly {
@@ -225,6 +225,14 @@ async function createReadySession(): Promise<SessionResponse> {
   return (await resp.json()) as SessionResponse;
 }
 
+async function createCompletedSession(): Promise<SessionResponse> {
+  const ready = await createReadySession();
+  const resp = await postJson(`/checkout-sessions/${ready.id}/complete`, {
+    payment: makePayment(),
+  });
+  return (await resp.json()) as SessionResponse;
+}
+
 describe('Shopware E2E Checkout', () => {
   beforeAll(async () => {
     const healthResp = await get('/health');
@@ -392,6 +400,28 @@ describe('Shopware E2E Checkout', () => {
 
       expect(resp.status).toBe(200);
       expect(body.status).toBe('canceled');
+    });
+  });
+
+  describe('Order spec compliance', () => {
+    it('checkout complete response has minimal order (id + permalink_url only)', async () => {
+      const completed = await createCompletedSession();
+
+      expect(completed.order).toBeDefined();
+      expect(completed.order?.id).toBeTruthy();
+      expect(completed.order?.permalink_url).toBeTruthy();
+    });
+
+    it('GET completed session also returns minimal order', async () => {
+      const completed = await createCompletedSession();
+      const resp = await get(`/checkout-sessions/${completed.id}`);
+      const body = (await resp.json()) as SessionResponse;
+
+      expect(resp.status).toBe(200);
+      expect(body.status).toBe('completed');
+      expect(body.order).toBeDefined();
+      expect(body.order?.id).toBeTruthy();
+      expect(body.order?.permalink_url).toBeTruthy();
     });
   });
 
