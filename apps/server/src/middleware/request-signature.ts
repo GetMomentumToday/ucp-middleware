@@ -35,8 +35,7 @@ export const requestSignaturePlugin = fp(async function requestSignature(
     const signatureHeader = request.headers[REQUEST_SIGNATURE_HEADER];
     if (!signatureHeader || typeof signatureHeader !== 'string') return;
 
-    // WHY: best-effort verification — log result but don't reject.
-    // Many agents don't sign requests yet; enforcement comes in a later phase.
+    // WHY: best-effort — agents rarely sign yet; enforcement deferred to later phase
     try {
       const rawBody =
         typeof request.body === 'string' ? request.body : JSON.stringify(request.body ?? '');
