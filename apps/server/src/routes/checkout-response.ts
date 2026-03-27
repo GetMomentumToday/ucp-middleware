@@ -77,7 +77,9 @@ function buildRawResponse(
     buyer: session.buyer,
     shipping_address: session.shipping_address,
     billing_address: session.billing_address,
-    order: session.order ?? null,
+    order: session.order
+      ? { id: session.order.id, permalink_url: session.order.permalink_url }
+      : null,
     continue_url: resolveContinueUrl(session, tenantSettings?.domain),
     messages: session.messages,
     expires_at: session.expires_at,
