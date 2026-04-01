@@ -225,6 +225,8 @@ export async function handleCreateSession(
   if (body.currency) updateFields['currency'] = body.currency;
   if (body.buyer) updateFields['buyer'] = body.buyer;
   if (body.payment) updateFields['payment'] = body.payment;
+  if (body.signals) updateFields['signals'] = body.signals;
+  if (body.consent) updateFields['consent'] = body.consent;
 
   if (body.fulfillment) {
     const buyerEmail = body.buyer?.email ?? undefined;
@@ -317,6 +319,8 @@ export async function handleUpdateSession(
     if (body.buyer.shipping_address) updateData['shipping_address'] = body.buyer.shipping_address;
     if (body.buyer.billing_address) updateData['billing_address'] = body.buyer.billing_address;
   }
+  if (body.signals) updateData['signals'] = body.signals;
+  if (body.consent) updateData['consent'] = body.consent;
 
   const effectiveLineItems =
     (updateData['line_items'] as CheckoutSession['line_items']) ?? session.line_items;

@@ -2,19 +2,15 @@
  * Zod request-validation schemas for checkout endpoints.
  *
  * Derived from the official @omnixhq/ucp-js-sdk primitives (BuyerSchema,
- * PostalAddressSchema, ExtendedPaymentCredentialSchema) but kept lenient
+ * PostalAddressSchema, PaymentCredentialSchema) but kept lenient
  * (most fields optional) so that existing callers and tests continue to work.
  *
- * Response validation uses the full ExtendedCheckoutResponseSchema — see
+ * Response validation uses the full CheckoutResponseSchema — see
  * checkout-response.ts.
  */
 
 import { z } from 'zod';
-import {
-  PostalAddressSchema,
-  BuyerSchema,
-  ExtendedPaymentCredentialSchema,
-} from '@omnixhq/ucp-js-sdk';
+import { PostalAddressSchema, BuyerSchema, PaymentCredentialSchema } from '@omnixhq/ucp-js-sdk';
 
 const postalAddressSchema = PostalAddressSchema;
 
@@ -31,7 +27,7 @@ const instrumentSchema = z.object({
   brand: z.string().optional(),
   last_digits: z.string().optional(),
   selected: z.boolean().optional(),
-  credential: ExtendedPaymentCredentialSchema.partial().passthrough().optional(),
+  credential: PaymentCredentialSchema.partial().passthrough().optional(),
   billing_address: postalAddressSchema.optional(),
 });
 
@@ -99,8 +95,15 @@ export const createSessionSchema = z.object({
       address_country: z.string().optional(),
       address_region: z.string().optional(),
       postal_code: z.string().optional(),
+      intent: z.string().optional(),
+      language: z.string().optional(),
+      currency: z.string().optional(),
+      eligibility: z.array(z.string()).optional(),
     })
+    .passthrough()
     .optional(),
+  signals: z.record(z.unknown()).optional(),
+  consent: z.record(z.boolean()).optional(),
   payment: paymentSchema.default({}),
   fulfillment: fulfillmentSchema,
   discounts: discountsSchema,
@@ -119,8 +122,15 @@ export const updateSessionSchema = z.object({
       address_country: z.string().optional(),
       address_region: z.string().optional(),
       postal_code: z.string().optional(),
+      intent: z.string().optional(),
+      language: z.string().optional(),
+      currency: z.string().optional(),
+      eligibility: z.array(z.string()).optional(),
     })
+    .passthrough()
     .optional(),
+  signals: z.record(z.unknown()).optional(),
+  consent: z.record(z.boolean()).optional(),
   payment: paymentSchema,
   fulfillment: fulfillmentSchema,
   discounts: discountsSchema,
@@ -135,7 +145,9 @@ export const completeSessionSchema = z
       .optional(),
     payment_data: instrumentSchema.optional(),
     risk_signals: z.record(z.string()).optional(),
+    ap2_mandate: z.string().optional(),
+    merchant_authorization: z.string().optional(),
   })
-  .refine((data) => data.payment?.instruments?.length || data.payment_data, {
-    message: 'Either payment.instruments or payment_data must be provided',
+  .refine((data) => data.payment?.instruments?.length || data.payment_data || data.ap2_mandate, {
+    message: 'Either payment.instruments, payment_data, or ap2_mandate must be provided',
   });

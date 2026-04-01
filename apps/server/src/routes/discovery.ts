@@ -37,9 +37,20 @@ export async function discoveryRoutes(app: FastifyInstance): Promise<void> {
     const mergedHandlers =
       Object.keys(profileHandlers).length > 0 ? profileHandlers : paymentHandlers;
 
+    const profileCapabilities = profile.ucp.capabilities ?? {};
+    const gatewayCapabilities = {
+      'dev.ucp.shopping.catalog': [{ version: UCP_VERSION }],
+      'dev.ucp.shopping.cart': [{ version: UCP_VERSION }],
+      'dev.ucp.shopping.buyer_consent': [{ version: UCP_VERSION }],
+      'dev.ucp.shopping.embedded_checkout': [{ version: UCP_VERSION }],
+      'dev.ucp.identity_linking': [{ version: UCP_VERSION }],
+      'dev.ucp.ap2_mandate': [{ version: UCP_VERSION }],
+    };
+
     return {
       ucp: {
         ...profile.ucp,
+        capabilities: { ...profileCapabilities, ...gatewayCapabilities },
         payment_handlers: mergedHandlers,
       },
       signing_keys: signingKeys,

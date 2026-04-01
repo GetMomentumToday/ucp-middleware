@@ -18,6 +18,14 @@ import type {
   MessageInfo as SdkMessageInfo,
   ServiceResponse,
   CapabilityResponse,
+  ProductSchema,
+  VariantSchema,
+  CartSchema,
+  CartCreateRequestSchema,
+  CartUpdateRequestSchema,
+  SearchFiltersSchema,
+  UcpResponseCatalogSchema,
+  UcpResponseCartSchema,
 } from '@omnixhq/ucp-js-sdk';
 
 /* ---------------------------------------------------------------------------
@@ -72,8 +80,34 @@ export interface PaymentHandler {
 }
 
 /* ---------------------------------------------------------------------------
- * Gateway-internal types — no SDK equivalent (adapter contract)
+ * SDK-derived catalog/cart types — from draft v1.1.0-draft.3
  * ------------------------------------------------------------------------- */
+
+export type SdkProduct = z.infer<typeof ProductSchema>;
+
+export type SdkVariant = z.infer<typeof VariantSchema>;
+
+export type SdkCart = z.infer<typeof CartSchema>;
+
+export type SdkCartCreateRequest = z.infer<typeof CartCreateRequestSchema>;
+
+export type SdkCartUpdateRequest = z.infer<typeof CartUpdateRequestSchema>;
+
+export type SdkSearchFilters = z.infer<typeof SearchFiltersSchema>;
+
+export type SdkCatalogResponse = z.infer<typeof UcpResponseCatalogSchema>;
+
+export type SdkCartResponse = z.infer<typeof UcpResponseCartSchema>;
+
+/* ---------------------------------------------------------------------------
+ * Gateway-internal types — adapter contract (flat, simple)
+ * ------------------------------------------------------------------------- */
+
+export interface ProductRating {
+  readonly value: number;
+  readonly scale_max: number;
+  readonly count: number;
+}
 
 export interface Product {
   readonly id: string;
@@ -85,6 +119,8 @@ export interface Product {
   readonly stock_quantity: number;
   readonly images: readonly string[];
   readonly variants: readonly ProductVariant[];
+  readonly categories: readonly string[];
+  readonly rating?: ProductRating | undefined;
 }
 
 export interface ProductVariant {
@@ -279,4 +315,91 @@ export interface FulfillmentMethod {
 
 export interface Fulfillment {
   readonly methods: readonly FulfillmentMethod[];
+}
+
+/* ---------------------------------------------------------------------------
+ * Order update types — for order lifecycle (shipped/refunded/etc.)
+ * ------------------------------------------------------------------------- */
+
+export interface OrderFulfillmentEventInput {
+  readonly type: string;
+  readonly line_items: readonly { readonly id: string; readonly quantity: number }[];
+  readonly tracking_number?: string | undefined;
+  readonly tracking_url?: string | undefined;
+  readonly carrier?: string | undefined;
+  readonly description?: string | undefined;
+}
+
+export interface OrderAdjustmentInput {
+  readonly type: string;
+  readonly status: 'pending' | 'completed' | 'failed';
+  readonly line_items?: readonly { readonly id: string; readonly quantity: number }[] | undefined;
+  readonly amount?: number | undefined;
+  readonly description?: string | undefined;
+}
+
+export interface OrderUpdateInput {
+  readonly status?: PlatformOrderStatus | undefined;
+  readonly fulfillment_event?: OrderFulfillmentEventInput | undefined;
+  readonly adjustment?: OrderAdjustmentInput | undefined;
+}
+
+export interface PlatformOrderDetails extends PlatformOrder {
+  readonly line_items: ReadonlyArray<LineItem & { readonly _fulfilled?: number }>;
+  readonly fulfillment_events: readonly OrderFulfillmentEvent[];
+  readonly fulfillment_expectations: readonly OrderFulfillmentExpectation[];
+  readonly adjustments: readonly OrderAdjustment[];
+}
+
+/* ---------------------------------------------------------------------------
+ * Identity linking types
+ * ------------------------------------------------------------------------- */
+
+export interface IdentityLinkingMechanism {
+  readonly type: 'oauth2';
+  readonly issuer: string;
+  readonly client_id: string;
+  readonly scopes: readonly string[];
+}
+
+export interface IdentityLinkingConfig {
+  readonly mechanisms: readonly IdentityLinkingMechanism[];
+}
+
+/* ---------------------------------------------------------------------------
+ * Embedded checkout config
+ * ------------------------------------------------------------------------- */
+
+export interface EmbeddedCheckoutConfig {
+  readonly url: string;
+  readonly type?: 'iframe' | undefined;
+  readonly width?: number | undefined;
+  readonly height?: number | undefined;
+}
+
+/* ---------------------------------------------------------------------------
+ * AP2 Mandate types (autonomous agent payments)
+ * ------------------------------------------------------------------------- */
+
+export interface Ap2Mandate {
+  readonly mandate: string;
+  readonly agent_key?: JsonWebKey | undefined;
+  readonly scope?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export type MerchantAuthorization = string;
+
+/* ---------------------------------------------------------------------------
+ * Business-side profile types
+ * ------------------------------------------------------------------------- */
+
+export interface UCPBusinessProfile {
+  readonly ucp: {
+    readonly version: string;
+    readonly services: Readonly<
+      Record<string, readonly { readonly version: string; readonly transport: string }[]>
+    >;
+    readonly capabilities?: Readonly<Record<string, readonly { readonly version: string }[]>>;
+    readonly payment_handlers: Readonly<Record<string, readonly Record<string, unknown>[]>>;
+  };
 }

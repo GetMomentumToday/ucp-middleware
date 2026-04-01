@@ -1,4 +1,4 @@
-import { CheckoutResponseStatusSchema, ExtendedCheckoutResponseSchema } from '@omnixhq/ucp-js-sdk';
+import { CheckoutResponseStatusSchema, CheckoutResponseSchema } from '@omnixhq/ucp-js-sdk';
 import type { CheckoutSession, CheckoutLink, PaymentHandler } from '@ucp-gateway/core';
 
 const UCP_VERSION = '2026-01-23';
@@ -46,6 +46,15 @@ function resolveDefaultLinks(tenantSettings?: TenantLinkSettings): readonly Chec
 export interface CheckoutResponseOptions {
   readonly tenantSettings?: TenantLinkSettings | undefined;
   readonly paymentHandlers?: readonly PaymentHandler[] | undefined;
+  readonly embeddedConfig?:
+    | {
+        readonly url: string;
+        readonly type?: string;
+        readonly width?: number;
+        readonly height?: number;
+      }
+    | null
+    | undefined;
 }
 
 function buildRawResponse(
@@ -85,8 +94,18 @@ function buildRawResponse(
     expires_at: session.expires_at,
     fulfillment: session.fulfillment ?? undefined,
     discounts: session.discounts ?? undefined,
+    consent: session.consent ?? undefined,
+    signals: session.signals ?? undefined,
+    ...(session.status === 'requires_escalation' && options?.embeddedConfig
+      ? { embedded: options.embeddedConfig }
+      : {}),
     payment: {
-      instruments: [],
+      instruments: (options?.paymentHandlers ?? []).map((h) => ({
+        id: `instr_${h.id}`,
+        handler_id: h.id,
+        type: h.type,
+        selected: false,
+      })),
     },
     ucp: {
       version: UCP_VERSION,
@@ -148,7 +167,7 @@ export function toPublicCheckoutResponse(
     : { tenantSettings: tenantSettingsOrOptions as TenantLinkSettings | undefined };
   const raw = buildRawResponse(session, options);
 
-  const result = ExtendedCheckoutResponseSchema.safeParse(raw);
+  const result = CheckoutResponseSchema.safeParse(raw);
   if (!result.success) {
     // NOTE: Graceful degradation — return unvalidated response but log the mismatch
     // so we can tighten the internal model over time.

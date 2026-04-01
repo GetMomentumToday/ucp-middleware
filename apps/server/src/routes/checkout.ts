@@ -278,10 +278,98 @@ export async function checkoutRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
+  function buildOrderResponse(
+    order: import('@ucp-gateway/core').PlatformOrder,
+    details: import('@ucp-gateway/core').PlatformOrderDetails | null,
+  ): Record<string, unknown> {
+    const lineItems = (details?.line_items ?? []).map((li, i) => ({
+      id: `li-${i}`,
+      item: { id: li.product_id, title: li.title, price: li.unit_price_cents },
+      quantity: { total: li.quantity, fulfilled: (li as { _fulfilled?: number })._fulfilled ?? 0 },
+      totals: [{ type: 'total', amount: li.unit_price_cents * li.quantity }],
+      status:
+        ((li as { _fulfilled?: number })._fulfilled ?? 0) >= li.quantity
+          ? 'fulfilled'
+          : 'processing',
+    }));
+
+    return {
+      ucp: {
+        version: '2026-01-23',
+        status: 'success',
+        capabilities: {
+          'dev.ucp.shopping.order': [{ version: '2026-01-23' }],
+        },
+      },
+      id: order.id,
+      checkout_id: `session-${order.id}`,
+      permalink_url: `https://mock.store/orders/${order.id}`,
+      status: order.status,
+      line_items: lineItems,
+      totals: [{ type: 'total', amount: order.total_cents }],
+      currency: order.currency,
+      created_at: order.created_at_iso,
+      fulfillment: {
+        expectations: details?.fulfillment_expectations ?? [],
+        events: details?.fulfillment_events ?? [],
+      },
+      adjustments: details?.adjustments ?? [],
+    };
+  }
+
   app.get<{ Params: { id: string } }>('/orders/:id', async (request, reply: FastifyReply) => {
     try {
-      const order = await request.adapter.getOrder(request.params.id);
-      return reply.status(200).send(order);
+      const adapter = request.adapter;
+      const details = adapter.getOrderWithDetails
+        ? await adapter.getOrderWithDetails(request.params.id)
+        : null;
+      const order = details ?? (await adapter.getOrder(request.params.id));
+
+      return reply.status(200).send(buildOrderResponse(order, details));
+    } catch (err: unknown) {
+      if (err instanceof AdapterError && err.code === 'ORDER_NOT_FOUND') {
+        return sendSessionError(reply, 'missing', `Order not found: ${request.params.id}`, 404);
+      }
+      throw err;
+    }
+  });
+
+  app.put<{ Params: { id: string } }>('/orders/:id', async (request, reply: FastifyReply) => {
+    if (!request.adapter.updateOrder) {
+      return sendSessionError(reply, 'not_supported', 'Order updates not supported', 501);
+    }
+
+    try {
+      const body = request.body as Record<string, unknown>;
+      const update: import('@ucp-gateway/core').OrderUpdateInput = {
+        status: body['status'] as import('@ucp-gateway/core').PlatformOrderStatus | undefined,
+        fulfillment_event: body['fulfillment_event'] as
+          | import('@ucp-gateway/core').OrderFulfillmentEventInput
+          | undefined,
+        adjustment: body['adjustment'] as
+          | import('@ucp-gateway/core').OrderAdjustmentInput
+          | undefined,
+      };
+
+      const updated = await request.adapter.updateOrder(request.params.id, update);
+      const details = request.adapter.getOrderWithDetails
+        ? await request.adapter.getOrderWithDetails(request.params.id)
+        : null;
+
+      const eventBus = app.container.resolve('eventBus');
+      const eventType =
+        update.fulfillment_event?.type === 'delivered'
+          ? ('order.fulfilled' as const)
+          : ('order.updated' as const);
+      eventBus.emit({
+        id: randomUUID(),
+        type: eventType,
+        tenant_id: request.tenant.id,
+        occurred_at: new Date().toISOString(),
+        payload: { id: updated.id, status: updated.status } as Readonly<Record<string, unknown>>,
+      });
+
+      return reply.status(200).send(buildOrderResponse(updated, details));
     } catch (err: unknown) {
       if (err instanceof AdapterError && err.code === 'ORDER_NOT_FOUND') {
         return sendSessionError(reply, 'missing', `Order not found: ${request.params.id}`, 404);
