@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
+import { OrderSchema, type Order } from '@omnixhq/ucp-js-sdk';
 import type { PlatformAdapter, PaymentHandler } from '@ucp-gateway/core';
 import { AdapterError } from '@ucp-gateway/core';
 import {
@@ -281,22 +282,22 @@ export async function checkoutRoutes(app: FastifyInstance): Promise<void> {
   function buildOrderResponse(
     order: import('@ucp-gateway/core').PlatformOrder,
     details: import('@ucp-gateway/core').PlatformOrderDetails | null,
-  ): Record<string, unknown> {
+  ): Order & { readonly status: string; readonly created_at: string } {
     const lineItems = (details?.line_items ?? []).map((li, i) => ({
       id: `li-${i}`,
       item: { id: li.product_id, title: li.title, price: li.unit_price_cents },
       quantity: { total: li.quantity, fulfilled: (li as { _fulfilled?: number })._fulfilled ?? 0 },
-      totals: [{ type: 'total', amount: li.unit_price_cents * li.quantity }],
+      totals: [{ type: 'total' as const, amount: li.unit_price_cents * li.quantity }],
       status:
         ((li as { _fulfilled?: number })._fulfilled ?? 0) >= li.quantity
-          ? 'fulfilled'
-          : 'processing',
+          ? ('fulfilled' as const)
+          : ('processing' as const),
     }));
 
-    return {
+    const input = {
       ucp: {
         version: '2026-01-23',
-        status: 'success',
+        status: 'success' as const,
         capabilities: {
           'dev.ucp.shopping.order': [{ version: '2026-01-23' }],
         },
@@ -304,17 +305,19 @@ export async function checkoutRoutes(app: FastifyInstance): Promise<void> {
       id: order.id,
       checkout_id: `session-${order.id}`,
       permalink_url: `https://mock.store/orders/${order.id}`,
-      status: order.status,
       line_items: lineItems,
-      totals: [{ type: 'total', amount: order.total_cents }],
+      totals: [{ type: 'total' as const, amount: order.total_cents }],
       currency: order.currency,
-      created_at: order.created_at_iso,
       fulfillment: {
         expectations: details?.fulfillment_expectations ?? [],
         events: details?.fulfillment_events ?? [],
       },
       adjustments: details?.adjustments ?? [],
     };
+
+    const result = OrderSchema.safeParse(input);
+    const base = result.success ? result.data : (input as unknown as Order);
+    return { ...base, status: order.status, created_at: order.created_at_iso };
   }
 
   app.get<{ Params: { id: string } }>('/orders/:id', async (request, reply: FastifyReply) => {
