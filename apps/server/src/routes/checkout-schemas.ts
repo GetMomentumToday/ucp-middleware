@@ -136,6 +136,34 @@ export const updateSessionSchema = z.object({
   discounts: discountsSchema,
 });
 
+const fulfillmentEventLineItemSchema = z.object({
+  id: z.string().min(1),
+  quantity: z.number().int().min(1),
+});
+
+const fulfillmentEventSchema = z.object({
+  type: z.string().min(1),
+  line_items: z.array(fulfillmentEventLineItemSchema).default([]),
+  tracking_number: z.string().optional(),
+  tracking_url: z.string().optional(),
+  carrier: z.string().optional(),
+  description: z.string().optional(),
+});
+
+const orderAdjustmentSchema = z.object({
+  type: z.string().min(1),
+  status: z.enum(['pending', 'completed', 'failed']),
+  line_items: z.array(fulfillmentEventLineItemSchema).optional(),
+  amount: z.number().optional(),
+  description: z.string().optional(),
+});
+
+export const updateOrderSchema = z.object({
+  status: z.enum(['pending', 'processing', 'shipped', 'delivered', 'canceled']).optional(),
+  fulfillment_event: fulfillmentEventSchema.optional(),
+  adjustment: orderAdjustmentSchema.optional(),
+});
+
 export const completeSessionSchema = z
   .object({
     payment: z

@@ -84,8 +84,15 @@ export async function cartRoutes(app: FastifyInstance): Promise<void> {
       unit_price_cents: 0,
     }));
 
-    const updatedCart = await request.adapter.addToCart(request.params.id, adapterLineItems);
-    return toSdkCart(updatedCart, { buyer, context });
+    try {
+      const updatedCart = await request.adapter.addToCart(request.params.id, adapterLineItems);
+      return toSdkCart(updatedCart, { buyer, context });
+    } catch (err: unknown) {
+      if (err instanceof AdapterError && err.code === 'CART_NOT_FOUND') {
+        return reply.status(404).send(buildUCPErrorBody('cart_not_found', err.message));
+      }
+      throw err;
+    }
   });
 
   app.get<{ Params: { id: string } }>('/ucp/cart/:id', async (request, reply: FastifyReply) => {

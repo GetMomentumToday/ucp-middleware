@@ -21,6 +21,7 @@ import {
   createSessionSchema,
   updateSessionSchema,
   completeSessionSchema,
+  updateOrderSchema,
 } from './checkout-schemas.js';
 import {
   handleCreateSession,
@@ -342,17 +343,18 @@ export async function checkoutRoutes(app: FastifyInstance): Promise<void> {
       return sendSessionError(reply, 'not_supported', 'Order updates not supported', 501);
     }
 
+    const parsed = updateOrderSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return sendSessionError(
+        reply,
+        'invalid',
+        parsed.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join('; '),
+        400,
+      );
+    }
+
     try {
-      const body = request.body as Record<string, unknown>;
-      const update: import('@ucp-gateway/core').OrderUpdateInput = {
-        status: body['status'] as import('@ucp-gateway/core').PlatformOrderStatus | undefined,
-        fulfillment_event: body['fulfillment_event'] as
-          | import('@ucp-gateway/core').OrderFulfillmentEventInput
-          | undefined,
-        adjustment: body['adjustment'] as
-          | import('@ucp-gateway/core').OrderAdjustmentInput
-          | undefined,
-      };
+      const update: import('@ucp-gateway/core').OrderUpdateInput = parsed.data;
 
       const updated = await request.adapter.updateOrder(request.params.id, update);
       const details = request.adapter.getOrderWithDetails

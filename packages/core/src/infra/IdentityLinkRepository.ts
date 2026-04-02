@@ -49,8 +49,11 @@ export class IdentityLinkRepository {
     return (row as IdentityLink) ?? null;
   }
 
-  async delete(id: string): Promise<boolean> {
-    const result = await this.db.delete(identityLinks).where(eq(identityLinks.id, id)).returning();
+  async deleteByTenant(id: string, tenantId: string): Promise<boolean> {
+    const result = await this.db
+      .delete(identityLinks)
+      .where(and(eq(identityLinks.id, id), eq(identityLinks.tenantId, tenantId)))
+      .returning();
     return result.length > 0;
   }
 }

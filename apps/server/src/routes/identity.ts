@@ -80,7 +80,7 @@ export async function identityRoutes(app: FastifyInstance): Promise<void> {
     async (request, reply: FastifyReply) => {
       const db = app.container.resolve('db');
       const repo = new IdentityLinkRepository(db);
-      const deleted = await repo.delete(request.params.id);
+      const deleted = await repo.deleteByTenant(request.params.id, request.tenant.id);
 
       if (!deleted) {
         return reply.status(404).send(buildUCPErrorBody('not_found', 'Identity link not found'));
