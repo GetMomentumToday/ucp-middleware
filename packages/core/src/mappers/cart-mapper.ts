@@ -1,6 +1,6 @@
 import type { Cart, LineItem, Buyer, SdkCart } from '../types/commerce.js';
 
-const UCP_VERSION = '2026-01-23';
+const UCP_VERSION = '2026-04-08';
 
 function mapLineItem(item: LineItem, index: number): SdkCart['line_items'][number] {
   const lineTotal = item.unit_price_cents * item.quantity;
@@ -29,7 +29,9 @@ export function toSdkCart(cart: Cart, options?: ToSdkCartOptions): SdkCart {
   const ucpVersion = options?.ucpVersion ?? UCP_VERSION;
   const lineItems = cart.items.map((item, i) => mapLineItem(item, i));
   const subtotal = lineItems.reduce((sum, li) => {
-    const sub = li.totals.find((t) => t.type === 'subtotal');
+    const sub = (li.totals as { type: string; amount: number }[]).find(
+      (t) => t.type === 'subtotal',
+    );
     return sum + (sub?.amount ?? 0);
   }, 0);
 

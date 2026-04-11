@@ -3,7 +3,7 @@
  * All monetary values are integers in the smallest currency unit (cents).
  * All types are immutable.
  *
- * Types that match UCP spec are re-exported from @omnixhq/ucp-js-sdk.
+ * Types that match UCP spec use z.infer<typeof Schema> from @omnixhq/ucp-js-sdk.
  * Gateway-internal types (Product, Cart, LineItem, etc.) stay local.
  */
 
@@ -26,6 +26,17 @@ import type {
   SearchFiltersSchema,
   UcpResponseCatalogSchema,
   UcpResponseCartSchema,
+  OrderSchema,
+  OrderLineItemSchema,
+  OrderLineItemStatusEnumSchema,
+  AdjustmentSchema,
+  ExpectationSchema,
+  FulfillmentEventSchema,
+  FulfillmentExtensionFulfillmentSchema,
+  FulfillmentExtensionFulfillmentMethodSchema,
+  FulfillmentExtensionFulfillmentGroupSchema,
+  FulfillmentExtensionFulfillmentOptionSchema,
+  FulfillmentDestinationSchema,
 } from '@omnixhq/ucp-js-sdk';
 
 /* ---------------------------------------------------------------------------
@@ -80,7 +91,7 @@ export interface PaymentHandler {
 }
 
 /* ---------------------------------------------------------------------------
- * SDK-derived catalog/cart types — from draft v1.1.0-draft.3
+ * SDK-derived catalog/cart types
  * ------------------------------------------------------------------------- */
 
 export type SdkProduct = z.infer<typeof ProductSchema>;
@@ -98,6 +109,61 @@ export type SdkSearchFilters = z.infer<typeof SearchFiltersSchema>;
 export type SdkCatalogResponse = z.infer<typeof UcpResponseCatalogSchema>;
 
 export type SdkCartResponse = z.infer<typeof UcpResponseCartSchema>;
+
+/* ---------------------------------------------------------------------------
+ * SDK-derived order types — inferred from SDK schemas
+ * ------------------------------------------------------------------------- */
+
+export type SdkOrder = z.infer<typeof OrderSchema>;
+
+export type OrderLineItemStatus = z.infer<typeof OrderLineItemStatusEnumSchema>;
+
+export type OrderLineItem = z.infer<typeof OrderLineItemSchema>;
+
+export type OrderAdjustment = z.infer<typeof AdjustmentSchema>;
+
+export type OrderFulfillmentExpectation = z.infer<typeof ExpectationSchema>;
+
+export type OrderFulfillmentEvent = z.infer<typeof FulfillmentEventSchema>;
+
+/* ---------------------------------------------------------------------------
+ * SDK-derived fulfillment extension types (checkout flow)
+ * ------------------------------------------------------------------------- */
+
+export type FulfillmentDestination = z.infer<typeof FulfillmentDestinationSchema>;
+
+export type FulfillmentOption = z.infer<typeof FulfillmentExtensionFulfillmentOptionSchema>;
+
+export type FulfillmentGroup = z.infer<typeof FulfillmentExtensionFulfillmentGroupSchema>;
+
+export type FulfillmentMethod = z.infer<typeof FulfillmentExtensionFulfillmentMethodSchema>;
+
+export type Fulfillment = z.infer<typeof FulfillmentExtensionFulfillmentSchema>;
+
+export interface EmbeddedCheckoutConfig {
+  readonly url: string;
+  readonly type?: 'iframe' | undefined;
+  readonly width?: number | undefined;
+  readonly height?: number | undefined;
+}
+
+/* ---------------------------------------------------------------------------
+ * UCPOrder — SDK Order + gateway-only created_at field
+ * ------------------------------------------------------------------------- */
+
+export type UCPOrder = SdkOrder & { readonly created_at: string };
+
+/** @deprecated Use UCPOrder instead */
+export type OrderConfirmation = UCPOrder;
+
+/* ---------------------------------------------------------------------------
+ * OrderFulfillment — object shape used in order responses
+ * ------------------------------------------------------------------------- */
+
+export interface OrderFulfillment {
+  readonly expectations: readonly OrderFulfillmentExpectation[];
+  readonly events: readonly OrderFulfillmentEvent[];
+}
 
 /* ---------------------------------------------------------------------------
  * Gateway-internal types — adapter contract (flat, simple)
@@ -187,138 +253,6 @@ export interface PlatformOrder {
 export type Order = PlatformOrder;
 
 /* ---------------------------------------------------------------------------
- * Order types — aligned with SDK OrderSchema
- * ------------------------------------------------------------------------- */
-
-export type OrderLineItemStatus = 'processing' | 'partial' | 'fulfilled';
-
-export interface OrderLineItemQuantity {
-  readonly total: number;
-  readonly fulfilled: number;
-}
-
-export interface OrderLineItem {
-  readonly id: string;
-  readonly item: {
-    readonly id: string;
-    readonly title?: string | undefined;
-    readonly price?: number | undefined;
-    readonly image_url?: string | undefined;
-  };
-  readonly quantity: OrderLineItemQuantity;
-  readonly totals: readonly Total[];
-  readonly status: OrderLineItemStatus;
-  readonly parent_id?: string | undefined;
-}
-
-export interface OrderFulfillmentLineItemRef {
-  readonly id: string;
-  readonly quantity: number;
-}
-
-export interface OrderFulfillmentExpectation {
-  readonly id: string;
-  readonly line_items: readonly OrderFulfillmentLineItemRef[];
-  readonly method_type: 'shipping' | 'pickup' | 'digital';
-  readonly destination: PostalAddress;
-  readonly description?: string | undefined;
-  readonly fulfillable_on?: string | undefined;
-}
-
-export interface OrderFulfillmentEvent {
-  readonly id: string;
-  readonly occurred_at: string;
-  readonly type: string;
-  readonly line_items: readonly OrderFulfillmentLineItemRef[];
-  readonly tracking_number?: string | undefined;
-  readonly tracking_url?: string | undefined;
-  readonly carrier?: string | undefined;
-  readonly description?: string | undefined;
-}
-
-export interface OrderFulfillment {
-  readonly expectations: readonly OrderFulfillmentExpectation[];
-  readonly events: readonly OrderFulfillmentEvent[];
-}
-
-export interface OrderAdjustment {
-  readonly id: string;
-  readonly type: string;
-  readonly occurred_at: string;
-  readonly status: 'pending' | 'completed' | 'failed';
-  readonly line_items?: readonly OrderFulfillmentLineItemRef[] | undefined;
-  /** Signed integer cents (ISO 4217 minor unit). Negative = reduction (refund/return), positive = addition (exchange charge). */
-  readonly amount?: number | undefined;
-  readonly description?: string | undefined;
-}
-
-export interface UCPOrder {
-  readonly ucp: {
-    readonly version: string;
-    readonly capabilities: Readonly<Record<string, readonly { readonly version: string }[]>>;
-  };
-  readonly id: string;
-  readonly checkout_id: string;
-  readonly permalink_url: string;
-  readonly line_items: readonly OrderLineItem[];
-  readonly totals: readonly Total[];
-  readonly fulfillment: OrderFulfillment;
-  readonly adjustments: readonly OrderAdjustment[];
-  readonly created_at: string;
-}
-
-/** @deprecated Use UCPOrder instead */
-export type OrderConfirmation = UCPOrder;
-
-/* ---------------------------------------------------------------------------
- * Fulfillment extension types
- * Spec: https://ucp.dev/latest/specification/fulfillment/
- * ------------------------------------------------------------------------- */
-
-export interface FulfillmentDestination {
-  readonly id: string;
-  readonly full_name?: string | undefined;
-  readonly address_country?: string | undefined;
-  readonly address?: PostalAddress | undefined;
-  readonly street_address?: string | undefined;
-  readonly address_locality?: string | undefined;
-  readonly address_region?: string | undefined;
-  readonly postal_code?: string | undefined;
-}
-
-export interface FulfillmentOptionTotal {
-  readonly type: string;
-  readonly amount: number;
-}
-
-export interface FulfillmentOption {
-  readonly id: string;
-  readonly title: string;
-  readonly description?: string | undefined;
-  readonly totals: readonly FulfillmentOptionTotal[];
-}
-
-export interface FulfillmentGroup {
-  readonly id: string;
-  readonly line_item_ids: readonly string[];
-  readonly options?: readonly FulfillmentOption[] | undefined;
-  readonly selected_option_id?: string | undefined;
-}
-
-export interface FulfillmentMethod {
-  readonly id: string;
-  readonly type: 'shipping' | 'pickup';
-  readonly line_item_ids: readonly string[];
-  readonly destinations?: readonly FulfillmentDestination[] | undefined;
-  readonly selected_destination_id?: string | undefined;
-  readonly groups: readonly FulfillmentGroup[];
-}
-
-export interface Fulfillment {
-  readonly methods: readonly FulfillmentMethod[];
-}
-
-/* ---------------------------------------------------------------------------
  * Order update types — for order lifecycle (shipped/refunded/etc.)
  * ------------------------------------------------------------------------- */
 
@@ -335,7 +269,6 @@ export interface OrderAdjustmentInput {
   readonly type: string;
   readonly status: 'pending' | 'completed' | 'failed';
   readonly line_items?: readonly { readonly id: string; readonly quantity: number }[] | undefined;
-  /** Signed integer cents (ISO 4217 minor unit). Negative = reduction (refund/return), positive = addition (exchange charge). */
   readonly amount?: number | undefined;
   readonly description?: string | undefined;
 }
@@ -353,7 +286,7 @@ export interface PlatformOrderDetails extends PlatformOrder {
 }
 
 /* ---------------------------------------------------------------------------
- * Identity linking types
+ * Identity linking types (gateway-internal, not in SDK)
  * ------------------------------------------------------------------------- */
 
 export interface IdentityLinkingMechanism {
@@ -365,17 +298,6 @@ export interface IdentityLinkingMechanism {
 
 export interface IdentityLinkingConfig {
   readonly mechanisms: readonly IdentityLinkingMechanism[];
-}
-
-/* ---------------------------------------------------------------------------
- * Embedded checkout config
- * ------------------------------------------------------------------------- */
-
-export interface EmbeddedCheckoutConfig {
-  readonly url: string;
-  readonly type?: 'iframe' | undefined;
-  readonly width?: number | undefined;
-  readonly height?: number | undefined;
 }
 
 /* ---------------------------------------------------------------------------
