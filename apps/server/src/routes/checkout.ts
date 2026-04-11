@@ -320,9 +320,7 @@ export async function checkoutRoutes(app: FastifyInstance): Promise<void> {
         status: adj.status,
         line_items: adj.line_items,
         description: adj.description,
-        totals:
-          adj.totals ??
-          (adj.amount !== undefined ? [{ type: 'total' as const, amount: adj.amount }] : []),
+        totals: adj.totals ?? [],
       })),
     };
 

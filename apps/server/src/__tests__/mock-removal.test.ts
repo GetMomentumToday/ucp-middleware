@@ -222,7 +222,7 @@ describe('fulfillment: getStoredAddresses returns empty array', () => {
     expect(result).not.toBeNull();
     expect(result!.methods).toHaveLength(1);
     // No client destinations provided, stored returns empty => undefined
-    expect(result!.methods[0]!.destinations).toBeUndefined();
+    expect(result!.methods![0]!.destinations).toBeUndefined();
   });
 });
 
@@ -339,7 +339,7 @@ describe('fulfillment: generateShippingOptions mock fallback', () => {
     );
 
     expect(result).not.toBeNull();
-    const group = result!.methods[0]!.groups[0]!;
+    const group = result!.methods![0]!.groups![0]!;
     expect(group.options).toBeDefined();
     expect(group.options!.length).toBeGreaterThanOrEqual(2);
 
@@ -368,7 +368,7 @@ describe('fulfillment: generateShippingOptions mock fallback', () => {
     );
 
     expect(result).not.toBeNull();
-    const group = result!.methods[0]!.groups[0]!;
+    const group = result!.methods![0]!.groups![0]!;
     expect(group.options).toBeDefined();
 
     const ids = group.options!.map((o) => o.id);
@@ -395,7 +395,7 @@ describe('fulfillment: generateShippingOptions mock fallback', () => {
       undefined,
     );
 
-    const group = result!.methods[0]!.groups[0]!;
+    const group = result!.methods![0]!.groups![0]!;
     const stdOption = group.options!.find((o) => o.id === 'std-ship')!;
     const stdTotal = stdOption.totals.find((t) => t.type === 'total');
     expect(stdTotal?.amount).toBe(0);

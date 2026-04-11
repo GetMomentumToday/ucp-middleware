@@ -323,7 +323,10 @@ export class MockAdapter implements PlatformAdapter {
         occurred_at: new Date().toISOString(),
         status: update.adjustment.status,
         line_items: update.adjustment.line_items ? [...update.adjustment.line_items] : undefined,
-        amount: update.adjustment.amount,
+        totals:
+          update.adjustment.amount !== undefined
+            ? [{ type: 'total' as const, amount: update.adjustment.amount }]
+            : undefined,
         description: update.adjustment.description,
       };
       updatedOrder = {
@@ -362,7 +365,7 @@ export class MockAdapter implements PlatformAdapter {
     cartId: string,
     destination: FulfillmentDestination,
   ): Promise<Fulfillment> {
-    const isUS = !destination.address_country || destination.address_country === 'US';
+    const isUS = !destination['address_country'] || destination['address_country'] === 'US';
     const cart = this.carts.get(cartId);
     const cartItems = cart?.items ?? [];
     const subtotal = cartItems.reduce(
@@ -429,7 +432,8 @@ export class MockAdapter implements PlatformAdapter {
     methodId: string,
     destination?: FulfillmentDestination,
   ): Promise<void> {
-    const isInternational = !!destination?.address_country && destination.address_country !== 'US';
+    const isInternational =
+      !!destination?.['address_country'] && destination['address_country'] !== 'US';
     this.selectedMethods.set(cartId, { methodId, isInternational });
   }
 

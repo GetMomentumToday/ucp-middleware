@@ -9,8 +9,8 @@ import type { CheckoutSession, Fulfillment } from '@ucp-gateway/core';
  */
 export function validateFulfillmentSelected(session: CheckoutSession): boolean {
   return (
-    session.fulfillment?.methods.some(
-      (m) => m.selected_destination_id && m.groups.some((g) => g.selected_option_id),
+    session.fulfillment?.methods?.some(
+      (m) => m.selected_destination_id && m.groups?.some((g) => g.selected_option_id),
     ) ?? false
   );
 }
@@ -50,7 +50,7 @@ export function shouldMarkReadyForComplete(
   const hasBuyerInfo = session.buyer !== null;
   const ff = fulfillment ?? session.fulfillment;
   const hasFulfillmentSelected =
-    ff?.methods.some((m) => m.groups.some((g) => g.selected_option_id)) ?? false;
+    ff?.methods?.some((m) => m.groups?.some((g) => g.selected_option_id)) ?? false;
   return hasLineItems && hasBuyerInfo && hasFulfillmentSelected;
 }
 
